@@ -1,0 +1,96 @@
+name: Integrity
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rustfmt-check:
+    name: Rustfmt Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install `nightly` toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          components: rustfmt
+          override: true
+
+      - name: Rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy:
+    name: Clippy
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install `nightly` toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          components: clippy
+          override: true
+
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cargo Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings -A unused
+
+  misplaced-use-statements-check:
+    name: Misplaced `use` Statements Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install `nightly` toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Ripgrep
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: ripgrep
+
+      # This uses some Regex to find `use` statements that are above the `// Uses` header
+      # This is an issue with how Rustfmt handles comments above `use` statements and there's not much that can be done
+      # For future reference, the reason for the `./` at the end is here: https://github.com/BurntSushi/ripgrep/issues/2181
+      - name: Check For Misplaced `use` Statements
+        run: >
+          ! rg
+          --multiline
+          --multiline-dotall
+          --case-sensitive
+          --type rust
+          '^use .+^// Uses$'
+          ./

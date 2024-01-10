@@ -1,0 +1,16 @@
+[package]
+name = "breeze"
+version = "0.1.0" # Managed by `release.sh`
+authors = ["Zacchary Dempsey-Plante <zacc@ztdp.ca>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/zedseven/breeze"
+homepage = "https://github.com/zedseven/breeze"
+description = "A tool for running presentations. Effectively a spiritual fork of the `suckless` tool, `sent`."
+
+[profile.release]
+codegen-units = 1
+lto = true
+
+[dependencies]
+anyhow = "1.0"

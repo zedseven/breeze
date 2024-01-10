@@ -1,0 +1,56 @@
+name: Artifacts
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install `nightly` Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: artifacts
+
+      - name: Cargo Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Upload Artifacts (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v3
+        with:
+          name: breeze (Linux)
+          path: ./target/release/breeze
+          if-no-files-found: error
+
+      - name: Upload Artifacts (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v3
+        with:
+          name: breeze (Windows)
+          path: ./target/release/breeze.exe
+          if-no-files-found: error
