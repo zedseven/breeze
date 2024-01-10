@@ -39,13 +39,24 @@
 mod sent;
 
 // Uses
-use anyhow::Result as AnyhowResult;
+use std::env::args;
+
+use anyhow::{anyhow, Context, Result as AnyhowResult};
 
 use crate::sent::Presentation;
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
-	let presentation = Presentation::load_from_path("/home/zacc/suckless/sent/example")?;
+	// Read the file path from the command line
+	let args = args().collect::<Vec<_>>();
+	if args.len() != 2 {
+		return Err(anyhow!("exactly one argument, the file path, is required"));
+	}
+	let file_path = args[1].as_str();
+
+	// Load the presentation
+	let presentation = Presentation::load_from_path(file_path)
+		.with_context(|| "unable to load the presentation")?;
 
 	dbg!(&presentation);
 
