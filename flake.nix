@@ -24,6 +24,8 @@
       overlays = [rust-overlay.overlays.default];
     };
 
+    inherit (nixpkgs) lib;
+
     rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
 
     craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
@@ -50,7 +52,26 @@
     checks.${system} = {
       inherit crate crate-clippy crate-fmt-check;
     };
-    devShells.${system}.default = pkgs.mkShell {
+    devShells.${system}.default = pkgs.mkShell rec {
+      # Below are runtime dependencies loaded via `dlopen` - they do not show up with `ldd`
+      # https://github.com/rust-windowing/winit/issues/493
+      # https://github.com/emilk/egui/discussions/1587
+      # https://www.reddit.com/r/bevy/comments/1136v35/has_anybody_managed_to_make_linux_staticish/
+      buildInputs = with pkgs; [
+        libxkbcommon
+        libGL
+
+        # WINIT_UNIX_BACKEND=wayland
+        wayland
+
+        # WINIT_UNIX_BACKEND=x11
+        xorg.libXcursor
+        xorg.libXrandr
+        xorg.libXi
+        xorg.libX11
+      ];
+      LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
+
       packages = [
         rustToolchain
       ];
