@@ -76,6 +76,8 @@ use crate::sent::{Presentation, Slide};
 const BASE_FONT_SIZE: f32 = 18.0;
 const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
+const DEFAULT_BACKGROUND_COLOUR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+const DEFAULT_FOREGROUND_COLOUR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
@@ -158,7 +160,7 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 					}
 
 					// Clear the screen with the background colour
-					encoder.clear(&color_view, [0.02, 0.02, 0.02, 1.0]);
+					encoder.clear(&color_view, DEFAULT_BACKGROUND_COLOUR);
 
 					let (width, height, ..) = color_view.get_dimensions();
 					let (width, height) = (f32::from(width), f32::from(height));
@@ -176,7 +178,7 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 								.add_text(
 									Text::new(text)
 										.with_scale(base_scale)
-										.with_color([0.9, 0.3, 0.3, 1.0]),
+										.with_color(DEFAULT_FOREGROUND_COLOUR),
 								)
 								.with_layout(non_centered_layout)
 								.with_bounds((usable_width, usable_height));
