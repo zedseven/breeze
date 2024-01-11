@@ -61,12 +61,14 @@ use glutin::surface::GlSurface;
 use glutin_winit::GlWindow;
 use old_school_gfx_glutin_ext::{window_builder as old_school_gfx_glutin_ext_window_builder, Init};
 use winit::{
-	event::{Event, WindowEvent},
+	event::{ElementState, Event, WindowEvent},
 	event_loop::{ControlFlow, EventLoop},
+	keyboard::{Key, NamedKey},
+	platform::modifier_supplement::KeyEventExtModifierSupplement,
 	window::WindowBuilder,
 };
 
-use crate::sent::Presentation;
+use crate::sent::{Presentation, Slide};
 
 // Constants
 /// Doesn't really matter, but we need something to start with before scaling to
@@ -95,6 +97,8 @@ fn main() -> AnyhowResult<()> {
 }
 
 fn run(presentation: &Presentation) -> AnyhowResult<()> {
+	let mut current_slide = 0;
+
 	let event_loop =
 		EventLoop::new().with_context(|| "unable to initialise the display backend")?;
 	event_loop.set_control_flow(ControlFlow::Wait);
@@ -153,6 +157,7 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 						view_size = window_size;
 					}
 
+					// Clear the screen with the background colour
 					encoder.clear(&color_view, [0.02, 0.02, 0.02, 1.0]);
 
 					let (width, height, ..) = color_view.get_dimensions();
@@ -163,52 +168,80 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 					);
 					let base_scale = BASE_FONT_SIZE * window.scale_factor() as f32;
 
-					let text = "Test\n    Lorem ipsum dolor sit amet.";
+					let current_slide_value = &presentation.0[current_slide];
+					match current_slide_value {
+						Slide::Text(text) => {
+							// Start with an unscaled, non-centered layout in the top-left corner
+							let mut section = Section::default()
+								.add_text(
+									Text::new(text)
+										.with_scale(base_scale)
+										.with_color([0.9, 0.3, 0.3, 1.0]),
+								)
+								.with_layout(non_centered_layout)
+								.with_bounds((usable_width, usable_height));
 
-					// Start with an unscaled, non-centered layout in the top-left corner
-					let mut section = Section::default()
-						.add_text(
-							Text::new(text)
-								.with_scale(base_scale)
-								.with_color([0.9, 0.3, 0.3, 1.0]),
-						)
-						.with_layout(non_centered_layout)
-						.with_bounds((usable_width, usable_height));
+							// Get the dimensions of it with the base scale so that it can be scaled
+							// to fit the usable space
+							let unscaled_section_dimensions = glyph_brush
+								.glyph_bounds(&section)
+								.expect("the section is not empty");
 
-					// Get the dimensions of it with the base scale so that it can be scaled to fit
-					// the usable space
-					let unscaled_section_dimensions = glyph_brush
-						.glyph_bounds(&section)
-						.expect("the section is not empty");
+							// Calculate the new scale and set the final values for the section
+							let new_width_scale =
+								usable_width / unscaled_section_dimensions.width() * base_scale;
+							let new_height_scale =
+								usable_height / unscaled_section_dimensions.height() * base_scale;
+							let new_scale = new_width_scale.min(new_height_scale);
 
-					// Calculate the new scale and set the final values for the section
-					let new_width_scale =
-						usable_width / unscaled_section_dimensions.width() * base_scale;
-					let new_height_scale =
-						usable_height / unscaled_section_dimensions.height() * base_scale;
-					let new_scale = new_width_scale.min(new_height_scale);
+							// There's only one text element, so this is safe to do
+							section.text[0].scale = new_scale.into();
+							section.layout = Layout::default()
+								.h_align(HorizontalAlign::Left)
+								.v_align(VerticalAlign::Center);
+							// The reason the calculations for X and Y are different is that the
+							// alignment horizontally and vertically is different
+							section.screen_position =
+								dbg!(((width - usable_width) / 2.0, height / 2.0));
 
-					// There's only one text element, so this is safe to do
-					section.text[0].scale = new_scale.into();
-					section.layout = Layout::default()
-						.h_align(HorizontalAlign::Left)
-						.v_align(VerticalAlign::Center);
-					// The reason the calculations for X and Y are different is that the alignment
-					// horizontally and vertically is different
-					section.screen_position = dbg!(((width - usable_width) / 2.0, height / 2.0));
+							// Queue the finished section
+							glyph_brush.queue(&section);
 
-					// Queue the finished section
-					glyph_brush.queue(&section);
-
-					// Draw the text
-					glyph_brush
-						.use_queue()
-						.draw(&mut encoder, &color_view)
-						.unwrap();
+							// Draw the text
+							glyph_brush
+								.use_queue()
+								.draw(&mut encoder, &color_view)
+								.unwrap();
+						}
+						Slide::Image(_) => {}
+						Slide::Empty => {}
+					}
 
 					encoder.flush(&mut device);
 					gl_surface.swap_buffers(&gl_context).unwrap();
 					device.cleanup();
+				}
+				WindowEvent::KeyboardInput { event, .. } => {
+					if event.state == ElementState::Pressed && !event.repeat {
+						match event.key_without_modifiers().as_ref() {
+							Key::Named(NamedKey::Escape) | Key::Character("q") => {
+								window_target.exit()
+							}
+							Key::Named(NamedKey::ArrowLeft) => {
+								if current_slide > 0 {
+									current_slide -= 1;
+									window.request_redraw();
+								}
+							}
+							Key::Named(NamedKey::ArrowRight) => {
+								if current_slide < presentation.0.len() - 1 {
+									current_slide += 1;
+									window.request_redraw();
+								}
+							}
+							_ => {}
+						}
+					}
 				}
 				_ => {}
 			},

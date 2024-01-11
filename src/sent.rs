@@ -13,7 +13,7 @@ const IMAGE_SLIDE_CHAR: char = '@';
 const ESCAPE_CHAR: char = '\\';
 
 #[derive(Clone, Debug)]
-pub struct Presentation(Vec<Slide>);
+pub struct Presentation(pub Vec<Slide>);
 
 #[derive(Clone, Debug)]
 pub enum Slide {
