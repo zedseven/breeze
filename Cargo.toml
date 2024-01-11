@@ -14,3 +14,9 @@ lto = true
 
 [dependencies]
 anyhow = "1.0"
+gfx = "0.18"
+gfx_glyph = "0.17"
+glutin = "0.31"
+glutin-winit = "0.4"
+old_school_gfx_glutin_ext = "0.32"
+winit = "0.29"
