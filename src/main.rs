@@ -47,7 +47,16 @@ use gfx::{
 	Device,
 	Encoder,
 };
-use gfx_glyph::{ab_glyph::FontArc, GlyphBrushBuilder, Section, Text};
+use gfx_glyph::{
+	ab_glyph::FontArc,
+	GlyphBrushBuilder,
+	GlyphCruncher,
+	HorizontalAlign,
+	Layout,
+	Section,
+	Text,
+	VerticalAlign,
+};
 use glutin::surface::GlSurface;
 use glutin_winit::GlWindow;
 use old_school_gfx_glutin_ext::{window_builder as old_school_gfx_glutin_ext_window_builder, Init};
@@ -58,6 +67,13 @@ use winit::{
 };
 
 use crate::sent::Presentation;
+
+// Constants
+/// Doesn't really matter, but we need something to start with before scaling to
+/// fit the space.
+const BASE_FONT_SIZE: f32 = 18.0;
+const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
+const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
@@ -74,11 +90,16 @@ fn main() -> AnyhowResult<()> {
 
 	dbg!(&presentation);
 
+	// Run the presentation
+	run(&presentation)
+}
+
+fn run(presentation: &Presentation) -> AnyhowResult<()> {
 	let event_loop =
 		EventLoop::new().with_context(|| "unable to initialise the display backend")?;
 	event_loop.set_control_flow(ControlFlow::Wait);
 	// TODO: Use the contents of the first slide as the title?
-	let window_builder = WindowBuilder::new().with_title(file_path);
+	let window_builder = WindowBuilder::new().with_title("TEMP_TITLE");
 
 	// I wanted to implement the renderer initialisation myself, but the myriad ways
 	// to do it without any consistency or documentation led me to just use the same
@@ -104,14 +125,14 @@ fn main() -> AnyhowResult<()> {
 		 ttf"
 	))
 	.with_context(|| "unable to load the font")?;
-	let mut glyph_brush = GlyphBrushBuilder::using_font(font)
-		.initial_cache_size((1024, 1024))
-		.build(factory.clone());
+	let mut glyph_brush = GlyphBrushBuilder::using_font(font).build(factory.clone());
 
 	let mut encoder: Encoder<_, _> = factory.create_command_buffer().into();
 
-	let font_size: f32 = 18.0;
 	let mut view_size = window.inner_size();
+	let non_centered_layout = Layout::default()
+		.h_align(HorizontalAlign::Left)
+		.v_align(VerticalAlign::Top);
 
 	#[allow(clippy::wildcard_enum_match_arm)]
 	event_loop
@@ -136,20 +157,47 @@ fn main() -> AnyhowResult<()> {
 
 					let (width, height, ..) = color_view.get_dimensions();
 					let (width, height) = (f32::from(width), f32::from(height));
-					let scale = font_size * window.scale_factor() as f32;
+					let (usable_width, usable_height) = (
+						width * USABLE_WIDTH_PERCENTAGE,
+						height * USABLE_HEIGHT_PERCENTAGE,
+					);
+					let base_scale = BASE_FONT_SIZE * window.scale_factor() as f32;
 
-					// The section is all the info needed for the glyph brush to render a 'section'
-					// of text.
 					let text = "Test\n    Lorem ipsum dolor sit amet.";
 
-					let section = Section::default()
+					// Start with an unscaled, non-centered layout in the top-left corner
+					let mut section = Section::default()
 						.add_text(
 							Text::new(text)
-								.with_scale(scale)
+								.with_scale(base_scale)
 								.with_color([0.9, 0.3, 0.3, 1.0]),
 						)
-						.with_bounds((width / 3.15, height));
+						.with_layout(non_centered_layout)
+						.with_bounds((usable_width, usable_height));
 
+					// Get the dimensions of it with the base scale so that it can be scaled to fit
+					// the usable space
+					let unscaled_section_dimensions = glyph_brush
+						.glyph_bounds(&section)
+						.expect("the section is not empty");
+
+					// Calculate the new scale and set the final values for the section
+					let new_width_scale =
+						usable_width / unscaled_section_dimensions.width() * base_scale;
+					let new_height_scale =
+						usable_height / unscaled_section_dimensions.height() * base_scale;
+					let new_scale = new_width_scale.min(new_height_scale);
+
+					// There's only one text element, so this is safe to do
+					section.text[0].scale = new_scale.into();
+					section.layout = Layout::default()
+						.h_align(HorizontalAlign::Left)
+						.v_align(VerticalAlign::Center);
+					// The reason the calculations for X and Y are different is that the alignment
+					// horizontally and vertically is different
+					section.screen_position = dbg!(((width - usable_width) / 2.0, height / 2.0));
+
+					// Queue the finished section
 					glyph_brush.queue(&section);
 
 					// Draw the text
