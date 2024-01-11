@@ -78,6 +78,7 @@ const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 const DEFAULT_BACKGROUND_COLOUR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const DEFAULT_FOREGROUND_COLOUR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+const DEFAULT_TITLE: &str = "`breeze` Presentation";
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
@@ -100,12 +101,14 @@ fn main() -> AnyhowResult<()> {
 
 fn run(presentation: &Presentation) -> AnyhowResult<()> {
 	let mut current_slide = 0;
+	let window_title = presentation
+		.try_get_title()
+		.unwrap_or_else(|| DEFAULT_TITLE.to_owned());
 
 	let event_loop =
 		EventLoop::new().with_context(|| "unable to initialise the display backend")?;
 	event_loop.set_control_flow(ControlFlow::Wait);
-	// TODO: Use the contents of the first slide as the title?
-	let window_builder = WindowBuilder::new().with_title("TEMP_TITLE");
+	let window_builder = WindowBuilder::new().with_title(window_title);
 
 	// I wanted to implement the renderer initialisation myself, but the myriad ways
 	// to do it without any consistency or documentation led me to just use the same

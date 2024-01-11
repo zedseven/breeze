@@ -98,4 +98,34 @@ impl Presentation {
 
 		Ok(Self::load(file_contents.as_str()))
 	}
+
+	pub fn try_get_title(&self) -> Option<String> {
+		const MAXIMUM_TITLE_LENGTH: usize = 64;
+		const ELLIPSIS: char = '…';
+
+		self.0.iter().find_map(|slide| match slide {
+			Slide::Text(text) => {
+				// Since the user is expected to wrap the text on their own, newlines need to be
+				// converted to spaces so the slide contents are on one long line
+				// The trimming is to prevent having multiple spaces in the title, which looks
+				// ugly
+				let mut title_text = String::with_capacity(text.len());
+				for line in text.lines().map(|line| line.trim()) {
+					if !title_text.is_empty() {
+						title_text.push(' ');
+					}
+					title_text.push_str(line);
+				}
+
+				// Truncate to the maximum length and put an ellipsis on the end if so
+				title_text.truncate(MAXIMUM_TITLE_LENGTH - 1);
+				if title_text.len() == MAXIMUM_TITLE_LENGTH - 1 {
+					title_text.push(ELLIPSIS);
+				}
+
+				Some(title_text)
+			}
+			Slide::Image(_) | Slide::Empty => None,
+		})
+	}
 }
