@@ -61,11 +61,11 @@ use glutin::surface::GlSurface;
 use glutin_winit::GlWindow;
 use old_school_gfx_glutin_ext::{window_builder as old_school_gfx_glutin_ext_window_builder, Init};
 use winit::{
-	event::{ElementState, Event, WindowEvent},
+	event::{ElementState, Event, MouseButton, WindowEvent},
 	event_loop::{ControlFlow, EventLoop},
 	keyboard::{Key, NamedKey},
 	platform::modifier_supplement::KeyEventExtModifierSupplement,
-	window::WindowBuilder,
+	window::{Window, WindowBuilder},
 };
 
 use crate::sent::{Presentation, Slide};
@@ -223,23 +223,41 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 					gl_surface.swap_buffers(&gl_context).unwrap();
 					device.cleanup();
 				}
+				WindowEvent::MouseInput {
+					state: ElementState::Pressed,
+					button: MouseButton::Right | MouseButton::Back,
+					..
+				} => change_slide(&window, presentation, &mut current_slide, false),
+				WindowEvent::MouseInput {
+					state: ElementState::Pressed,
+					button: MouseButton::Left | MouseButton::Forward,
+					..
+				} => change_slide(&window, presentation, &mut current_slide, true),
 				WindowEvent::KeyboardInput { event, .. } => {
 					if event.state == ElementState::Pressed && !event.repeat {
+						// TODO: Functionality to reload the presentation
 						match event.key_without_modifiers().as_ref() {
 							Key::Named(NamedKey::Escape) | Key::Character("q") => {
-								window_target.exit()
+								window_target.exit();
 							}
-							Key::Named(NamedKey::ArrowLeft) => {
-								if current_slide > 0 {
-									current_slide -= 1;
-									window.request_redraw();
-								}
+							Key::Named(
+								NamedKey::ArrowLeft
+								| NamedKey::ArrowUp
+								| NamedKey::Backspace
+								| NamedKey::NavigatePrevious,
+							)
+							| Key::Character("h" | "k" | "p") => {
+								change_slide(&window, presentation, &mut current_slide, false);
 							}
-							Key::Named(NamedKey::ArrowRight) => {
-								if current_slide < presentation.0.len() - 1 {
-									current_slide += 1;
-									window.request_redraw();
-								}
+							Key::Named(
+								NamedKey::ArrowRight
+								| NamedKey::ArrowDown
+								| NamedKey::Enter
+								| NamedKey::Space
+								| NamedKey::NavigateNext,
+							)
+							| Key::Character("l" | "j" | "n") => {
+								change_slide(&window, presentation, &mut current_slide, true);
 							}
 							_ => {}
 						}
@@ -250,4 +268,23 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 			_ => {}
 		})
 		.with_context(|| "encountered an error during the event loop")
+}
+
+fn change_slide(
+	window: &Window,
+	presentation: &Presentation,
+	current_slide: &mut usize,
+	advance: bool,
+) {
+	if advance {
+		if *current_slide < presentation.0.len() - 1 {
+			*current_slide += 1;
+			window.request_redraw();
+		}
+	} else {
+		if *current_slide > 0 {
+			*current_slide -= 1;
+			window.request_redraw();
+		}
+	}
 }
