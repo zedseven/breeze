@@ -1,7 +1,7 @@
 # `breeze`
 [![License: MIT/Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
-A tool for running presentations. Effectively a spiritual fork of the `suckless` tool,
+A tool for running presentations without fluff. Effectively a spiritual fork of the `suckless` tool,
 [`sent`](https://tools.suckless.org/sent/).
 
 `sent` is great, but often in work environments, Windows is predominant. `breeze` is a tool that supports

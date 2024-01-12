@@ -6,7 +6,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/zedseven/breeze"
 homepage = "https://github.com/zedseven/breeze"
-description = "A tool for running presentations. Effectively a spiritual fork of the `suckless` tool, `sent`."
+description = "A tool for running presentations without fluff. Effectively a spiritual fork of the `suckless` tool, `sent`."
 
 [profile.release]
 codegen-units = 1

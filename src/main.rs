@@ -1,5 +1,5 @@
-//! A tool for running presentations. Effectively a spiritual fork of the
-//! `suckless` tool, `sent`.
+//! A tool for running presentations without fluff. Effectively a spiritual fork
+//! of the `suckless` tool, `sent`.
 
 // Linting Rules
 #![warn(
