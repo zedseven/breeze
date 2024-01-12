@@ -39,7 +39,7 @@
 mod sent;
 
 // Uses
-use std::env::args;
+use std::{collections::HashMap, env::args, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use gfx::{
@@ -59,6 +59,7 @@ use gfx_glyph::{
 };
 use glutin::surface::GlSurface;
 use glutin_winit::GlWindow;
+use image::io::Reader as ImageReader;
 use old_school_gfx_glutin_ext::{
 	resize_views,
 	window_builder as old_school_gfx_glutin_ext_window_builder,
@@ -97,11 +98,44 @@ fn main() -> AnyhowResult<()> {
 	if args.len() != 2 {
 		return Err(anyhow!("exactly one argument, the file path, is required"));
 	}
-	let file_path = args[1].as_str();
+	let file_path = PathBuf::from(&args[1]);
 
 	// Load the presentation
-	let presentation = Presentation::load_from_path(file_path)
+	let presentation = Presentation::load_from_path(file_path.clone())
 		.with_context(|| "unable to load the presentation")?;
+
+	// Load all images into memory
+	let base_path = file_path.parent();
+	let mut image_cache = HashMap::new();
+	for image_path in presentation.0.iter().filter_map(|slide| match slide {
+		Slide::Image(image_path) => Some(image_path),
+		Slide::Text(_) | Slide::Empty => None,
+	}) {
+		// Resolve the image path relative to the presentation file
+		let resolved_image_path = if let Some(base_path) = base_path {
+			base_path.to_owned().join(image_path)
+		} else {
+			PathBuf::from(image_path)
+		};
+
+		// Load the image into memory
+		let image = ImageReader::open(resolved_image_path.as_path())
+			.with_context(|| {
+				format!(
+					"unable to open \"{}\"",
+					resolved_image_path.to_string_lossy()
+				)
+			})?
+			.decode()
+			.with_context(|| {
+				format!(
+					"unable to load \"{}\"",
+					resolved_image_path.to_string_lossy()
+				)
+			})?;
+
+		image_cache.insert(image_path, image);
+	}
 
 	// Run the presentation
 	run(&presentation)

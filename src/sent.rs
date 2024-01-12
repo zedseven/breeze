@@ -87,14 +87,11 @@ impl Presentation {
 
 	pub fn load_from_path<P>(path: P) -> AnyhowResult<Self>
 	where
-		P: AsRef<Path> + Copy,
+		P: AsRef<Path>,
 	{
-		let file_contents = read_to_string(path).with_context(|| {
-			format!(
-				"unable to read the file \"{}\"",
-				path.as_ref().to_string_lossy()
-			)
-		})?;
+		let path = path.as_ref();
+		let file_contents = read_to_string(path)
+			.with_context(|| format!("unable to read the file \"{}\"", path.to_string_lossy()))?;
 
 		Ok(Self::load(file_contents.as_str()))
 	}
