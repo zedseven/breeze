@@ -118,8 +118,7 @@ impl Presentation {
 				}
 
 				// Truncate to the maximum length and put an ellipsis on the end if so
-				title_text.truncate(MAXIMUM_TITLE_LENGTH - 1);
-				if title_text.len() == MAXIMUM_TITLE_LENGTH - 1 {
+				if char_truncate(&mut title_text, MAXIMUM_TITLE_LENGTH - 1) {
 					title_text.push(ELLIPSIS);
 				}
 
@@ -128,4 +127,20 @@ impl Presentation {
 			Slide::Image(_) | Slide::Empty => None,
 		})
 	}
+}
+
+/// Truncates based on Unicode char boundaries instead of bytes.
+///
+/// This avoids potential panics when using the base [`truncate`] function.
+///
+/// Returns whether anything was actually truncated.
+///
+/// [`truncate`]: String::truncate
+fn char_truncate(string: &mut String, maximum_chars: usize) -> bool {
+	if let Some((index, _)) = string.char_indices().nth(maximum_chars) {
+		string.truncate(index);
+		return true;
+	}
+
+	return false;
 }
