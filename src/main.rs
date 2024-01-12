@@ -227,8 +227,7 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 								.draw(&mut encoder, &color_view)
 								.unwrap();
 						}
-						Slide::Image(_) => {}
-						Slide::Empty => {}
+						Slide::Image(_) | Slide::Empty => {}
 					}
 
 					encoder.flush(&mut device);
@@ -293,10 +292,8 @@ fn change_slide(
 			*current_slide += 1;
 			window.request_redraw();
 		}
-	} else {
-		if *current_slide > 0 {
-			*current_slide -= 1;
-			window.request_redraw();
-		}
+	} else if *current_slide > 0 {
+		*current_slide -= 1;
+		window.request_redraw();
 	}
 }

@@ -101,7 +101,7 @@ impl Presentation {
 
 	pub fn try_get_title(&self) -> Option<String> {
 		const MAXIMUM_TITLE_LENGTH: usize = 64;
-		const ELLIPSIS: char = '…';
+		const ELLIPSIS: char = '\u{2026}';
 
 		self.0.iter().find_map(|slide| match slide {
 			Slide::Text(text) => {
@@ -110,7 +110,7 @@ impl Presentation {
 				// The trimming is to prevent having multiple spaces in the title, which looks
 				// ugly
 				let mut title_text = String::with_capacity(text.len());
-				for line in text.lines().map(|line| line.trim()) {
+				for line in text.lines().map(str::trim) {
 					if !title_text.is_empty() {
 						title_text.push(' ');
 					}
@@ -142,5 +142,5 @@ fn char_truncate(string: &mut String, maximum_chars: usize) -> bool {
 		return true;
 	}
 
-	return false;
+	false
 }
