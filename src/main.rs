@@ -59,7 +59,11 @@ use gfx_glyph::{
 };
 use glutin::surface::GlSurface;
 use glutin_winit::GlWindow;
-use old_school_gfx_glutin_ext::{window_builder as old_school_gfx_glutin_ext_window_builder, Init};
+use old_school_gfx_glutin_ext::{
+	resize_views,
+	window_builder as old_school_gfx_glutin_ext_window_builder,
+	Init,
+};
 use winit::{
 	event::{ElementState, Event, MouseButton, WindowEvent},
 	event_loop::{ControlFlow, EventLoop},
@@ -73,7 +77,13 @@ use crate::sent::{Presentation, Slide};
 // Constants
 /// Doesn't really matter, but we need something to start with before scaling to
 /// fit the space.
-const BASE_FONT_SIZE: f32 = 18.0;
+///
+/// The reason it's set so small is so that no wrapping is applied to the base
+/// before scaling, since wrapping would throw off the calculations.
+///
+/// It doesn't seem like there's a way to fully disable wrapping in
+/// `glyph-brush`.
+const BASE_FONT_SIZE: f32 = 1.0;
 const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 const DEFAULT_BACKGROUND_COLOUR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
@@ -154,11 +164,7 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 					let window_size = window.inner_size();
 					if view_size != window_size {
 						window.resize_surface(&gl_surface, &gl_context);
-						old_school_gfx_glutin_ext::resize_views(
-							window_size,
-							&mut color_view,
-							&mut depth_view,
-						);
+						resize_views(window_size, &mut color_view, &mut depth_view);
 						view_size = window_size;
 					}
 
