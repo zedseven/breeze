@@ -103,8 +103,6 @@ fn main() -> AnyhowResult<()> {
 	let presentation = Presentation::load_from_path(file_path)
 		.with_context(|| "unable to load the presentation")?;
 
-	dbg!(&presentation);
-
 	// Run the presentation
 	run(&presentation)
 }
@@ -199,11 +197,16 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 								.expect("the section is not empty");
 
 							// Calculate the new scale and set the final values for the section
-							let new_width_scale =
-								usable_width / unscaled_section_dimensions.width() * base_scale;
-							let new_height_scale =
-								usable_height / unscaled_section_dimensions.height() * base_scale;
-							let new_scale = new_width_scale.min(new_height_scale);
+							let new_width_scale_multiplier =
+								usable_width / unscaled_section_dimensions.width();
+							let new_height_scale_multiplier =
+								usable_height / unscaled_section_dimensions.height();
+							let new_scale_multiplier =
+								new_width_scale_multiplier.min(new_height_scale_multiplier);
+							let new_scale = base_scale * new_scale_multiplier;
+
+							let scaled_section_width =
+								unscaled_section_dimensions.width() * new_scale_multiplier;
 
 							// There's only one text element, so this is safe to do
 							section.text[0].scale = new_scale.into();
@@ -213,7 +216,7 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 							// The reason the calculations for X and Y are different is that the
 							// alignment horizontally and vertically is different
 							section.screen_position =
-								dbg!(((width - usable_width) / 2.0, height / 2.0));
+								((width - scaled_section_width) / 2.0, height / 2.0);
 
 							// Queue the finished section
 							glyph_brush.queue(&section);
