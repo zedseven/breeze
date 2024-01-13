@@ -1,3 +1,4 @@
+#![feature(slice_as_chunks)]
 //! A tool for running presentations without fluff. Effectively a spiritual fork
 //! of the `suckless` tool, `sent`.
 
@@ -42,10 +43,48 @@ mod sent;
 use std::{collections::HashMap, env::args, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
+pub use gfx; // Required by `gfx_defines`
 use gfx::{
 	format::{Depth, Srgba8},
+	gfx_defines,
+	gfx_impl_struct_meta,
+	gfx_pipeline,
+	gfx_pipeline_inner,
+	gfx_vertex_struct_meta,
+	handle::Manager,
+	pso::{buffer::BufferIndex, AccessInfo, DataBind, DataLink, ElementError, RawDataSet},
+	texture::{AaMode, Kind, Mipmap},
+	traits::FactoryExt,
 	Device,
 	Encoder,
+	Factory,
+	RenderTarget,
+	Resources,
+	TextureSampler,
+	VertexBuffer,
+};
+use gfx_core::{
+	format::Format,
+	pso::{
+		AttributeDesc,
+		ColorTargetDesc,
+		ConstantBufferDesc,
+		DepthStencilDesc,
+		ResourceViewDesc,
+		SamplerDesc,
+		UnorderedViewDesc,
+		VertexBufferDesc,
+	},
+	shade::{
+		AttributeVar,
+		CompatibilityError,
+		ConstVar,
+		ConstantBufferVar,
+		OutputVar,
+		SamplerVar,
+		TextureVar,
+		UnorderedVar,
+	},
 };
 use gfx_glyph::{
 	ab_glyph::FontArc,
@@ -59,7 +98,7 @@ use gfx_glyph::{
 };
 use glutin::surface::GlSurface;
 use glutin_winit::GlWindow;
-use image::io::Reader as ImageReader;
+use image::{io::Reader as ImageReader, DynamicImage};
 use old_school_gfx_glutin_ext::{
 	resize_views,
 	window_builder as old_school_gfx_glutin_ext_window_builder,
@@ -90,6 +129,178 @@ const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 const DEFAULT_BACKGROUND_COLOUR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const DEFAULT_FOREGROUND_COLOUR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const DEFAULT_TITLE: &str = "`breeze` Presentation";
+
+// Type Definitions
+type ColourFormat = Srgba8;
+type DepthFormat = Depth;
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct PipelineOption<T>(Option<T>);
+
+impl<T> PipelineOption<T> {
+	const PANIC_MESSAGE: &'static str =
+		"`None` value attempted to be bound to the rendering pipeline";
+
+	fn unwrap_as_ref(&self) -> &T {
+		match &self.0 {
+			Some(inner) => inner,
+			None => panic!("{}", Self::PANIC_MESSAGE),
+		}
+	}
+
+	fn unwrap_as_ref_mut(&mut self) -> &mut T {
+		match &mut self.0 {
+			Some(inner) => inner,
+			None => panic!("{}", Self::PANIC_MESSAGE),
+		}
+	}
+}
+
+impl<T, R> DataBind<R> for PipelineOption<T>
+where
+	T: DataBind<R>,
+	R: Resources,
+{
+	type Data = Option<T::Data>;
+
+	fn bind_to(
+		&self,
+		raw_data_set: &mut RawDataSet<R>,
+		data: &Self::Data,
+		manager: &mut Manager<R>,
+		access_info: &mut AccessInfo<R>,
+	) {
+		let Some(unwrapped_data) = data else {
+			panic!("{}", Self::PANIC_MESSAGE)
+		};
+
+		self.unwrap_as_ref()
+			.bind_to(raw_data_set, unwrapped_data, manager, access_info);
+	}
+}
+
+impl<'a, T> DataLink<'a> for PipelineOption<T>
+where
+	T: DataLink<'a>,
+{
+	type Init = T::Init;
+
+	fn new() -> Self {
+		Self(Some(T::new()))
+	}
+
+	fn is_active(&self) -> bool {
+		self.unwrap_as_ref().is_active()
+	}
+
+	fn link_vertex_buffer(
+		&mut self,
+		buffer_index: BufferIndex,
+		init: &Self::Init,
+	) -> Option<VertexBufferDesc> {
+		self.unwrap_as_ref_mut()
+			.link_vertex_buffer(buffer_index, init)
+	}
+
+	fn link_input(
+		&mut self,
+		attribute_var: &AttributeVar,
+		init: &Self::Init,
+	) -> Option<Result<AttributeDesc, Format>> {
+		self.unwrap_as_ref_mut().link_input(attribute_var, init)
+	}
+
+	fn link_constant_buffer<'b>(
+		&mut self,
+		constant_buffer_var: &'b ConstantBufferVar,
+		init: &Self::Init,
+	) -> Option<Result<ConstantBufferDesc, ElementError<&'b str>>> {
+		self.unwrap_as_ref_mut()
+			.link_constant_buffer(constant_buffer_var, init)
+	}
+
+	fn link_global_constant(
+		&mut self,
+		const_var: &ConstVar,
+		init: &Self::Init,
+	) -> Option<Result<(), CompatibilityError>> {
+		self.unwrap_as_ref_mut()
+			.link_global_constant(const_var, init)
+	}
+
+	fn link_output(
+		&mut self,
+		output_var: &OutputVar,
+		init: &Self::Init,
+	) -> Option<Result<ColorTargetDesc, Format>> {
+		self.unwrap_as_ref_mut().link_output(output_var, init)
+	}
+
+	fn link_depth_stencil(&mut self, init: &Self::Init) -> Option<DepthStencilDesc> {
+		self.unwrap_as_ref_mut().link_depth_stencil(init)
+	}
+
+	fn link_resource_view(
+		&mut self,
+		texture_var: &TextureVar,
+		init: &Self::Init,
+	) -> Option<Result<ResourceViewDesc, Format>> {
+		self.unwrap_as_ref_mut()
+			.link_resource_view(texture_var, init)
+	}
+
+	fn link_unordered_view(
+		&mut self,
+		unordered_var: &UnorderedVar,
+		init: &Self::Init,
+	) -> Option<Result<UnorderedViewDesc, Format>> {
+		self.unwrap_as_ref_mut()
+			.link_unordered_view(unordered_var, init)
+	}
+
+	fn link_sampler(&mut self, sampler_var: &SamplerVar, init: &Self::Init) -> Option<SamplerDesc> {
+		self.unwrap_as_ref_mut().link_sampler(sampler_var, init)
+	}
+
+	fn link_scissor(&mut self) -> bool {
+		self.unwrap_as_ref_mut().link_scissor()
+	}
+}
+
+gfx_defines! {
+	vertex Vertex {
+		pos: [f32; 2] = "a_Pos",
+		uv: [f32; 2] = "a_Uv",
+	}
+
+	pipeline pipe {
+		vertex_buffer: VertexBuffer<Vertex> = (),
+		current_texture: PipelineOption<TextureSampler<[f32; 4]>> = "t_Current",
+		render_target: RenderTarget<ColourFormat> = "Target0",
+	}
+}
+
+const SQUARE: (&[Vertex], &[u16]) = (
+	&[
+		Vertex {
+			pos: [0.5, -0.5],
+			uv:  [1.0, 0.0],
+		},
+		Vertex {
+			pos: [-0.5, -0.5],
+			uv:  [0.0, 0.0],
+		},
+		Vertex {
+			pos: [-0.5, 0.5],
+			uv:  [0.0, 1.0],
+		},
+		Vertex {
+			pos: [0.5, 0.5],
+			uv:  [1.0, 1.0],
+		},
+	],
+	&[0, 1, 2, 2, 3, 0],
+);
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
@@ -138,10 +349,13 @@ fn main() -> AnyhowResult<()> {
 	}
 
 	// Run the presentation
-	run(&presentation)
+	run(&presentation, image_cache)
 }
 
-fn run(presentation: &Presentation) -> AnyhowResult<()> {
+fn run(
+	presentation: &Presentation,
+	image_cache: HashMap<&String, DynamicImage>,
+) -> AnyhowResult<()> {
 	let mut current_slide = 0;
 	let window_title = presentation
 		.try_get_title()
@@ -163,11 +377,11 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 		gl_context,
 		mut device,
 		mut factory,
-		mut color_view,
+		color_view: colour_view,
 		mut depth_view,
 		..
 	} = old_school_gfx_glutin_ext_window_builder(&event_loop, window_builder)
-		.build::<Srgba8, Depth>()
+		.build::<ColourFormat, DepthFormat>()
 		.map_err(|error| anyhow!(error.to_string()))
 		.with_context(|| "unable to build the window")?;
 
@@ -179,6 +393,37 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 	let mut glyph_brush = GlyphBrushBuilder::using_font(font).build(factory.clone());
 
 	let mut encoder: Encoder<_, _> = factory.create_command_buffer().into();
+
+	let mut image_shader_cache = HashMap::new();
+	for (image_path, image) in image_cache {
+		let image_data = image.to_rgba8();
+		let (image_width, image_height) = image_data.dimensions();
+		let kind = Kind::D2(image_width as u16, image_height as u16, AaMode::Single);
+		let (_, resource_view) = factory
+			.create_texture_immutable::<ColourFormat>(
+				kind,
+				Mipmap::Provided,
+				&[image_data.as_chunks::<4>().0],
+			)
+			.with_context(|| {
+				format!("unable to prepare the image \"{image_path}\" for rendering")
+			})?;
+		image_shader_cache.insert(image_path, resource_view);
+	}
+
+	let pipeline = factory
+		.create_pipeline_simple(
+			include_bytes!("./texture_simple.vert"),
+			include_bytes!("./texture_simple.frag"),
+			pipe::new(),
+		)
+		.with_context(|| "unable to prepare the rendering pipeline for texture rendering")?;
+	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(SQUARE.0, SQUARE.1);
+	let mut data = pipe::Data {
+		vertex_buffer,
+		current_texture: None,
+		render_target: colour_view,
+	};
 
 	let mut view_size = window.inner_size();
 	let non_centered_layout = Layout::default()
@@ -196,14 +441,14 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 					let window_size = window.inner_size();
 					if view_size != window_size {
 						window.resize_surface(&gl_surface, &gl_context);
-						resize_views(window_size, &mut color_view, &mut depth_view);
+						resize_views(window_size, &mut data.render_target, &mut depth_view);
 						view_size = window_size;
 					}
 
 					// Clear the screen with the background colour
-					encoder.clear(&color_view, DEFAULT_BACKGROUND_COLOUR);
+					encoder.clear(&data.render_target, DEFAULT_BACKGROUND_COLOUR);
 
-					let (width, height, ..) = color_view.get_dimensions();
+					let (width, height, ..) = data.render_target.get_dimensions();
 					let (width, height) = (f32::from(width), f32::from(height));
 					let (usable_width, usable_height) = (
 						width * USABLE_WIDTH_PERCENTAGE,
@@ -258,10 +503,16 @@ fn run(presentation: &Presentation) -> AnyhowResult<()> {
 							// Draw the text
 							glyph_brush
 								.use_queue()
-								.draw(&mut encoder, &color_view)
+								.draw(&mut encoder, &data.render_target)
 								.unwrap();
 						}
-						Slide::Image(_) | Slide::Empty => {}
+						Slide::Image(image_path) => {
+							let resource_view = image_shader_cache[image_path].clone();
+							data.current_texture =
+								Some((resource_view, factory.create_sampler_linear()));
+							encoder.draw(&slice, &pipeline, &data);
+						}
+						Slide::Empty => {}
 					}
 
 					encoder.flush(&mut device);

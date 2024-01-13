@@ -15,6 +15,7 @@ lto = true
 [dependencies]
 anyhow = "1.0"
 gfx = "0.18"
+gfx_core = "0.9"
 gfx_glyph = "0.17"
 glutin = "0.31"
 glutin-winit = "0.4"

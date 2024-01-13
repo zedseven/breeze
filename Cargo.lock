@@ -176,6 +176,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "gfx",
+ "gfx_core",
  "gfx_glyph",
  "glutin",
  "glutin-winit",
