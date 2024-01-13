@@ -42,7 +42,11 @@ mod pipeline_option;
 mod sent;
 
 // Uses
-use std::{collections::HashMap, env::args, path::PathBuf};
+use std::{
+	collections::HashMap,
+	env::args,
+	path::{Path, PathBuf},
+};
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 pub use gfx; // Required by `gfx_defines`
@@ -184,23 +188,12 @@ fn calculate_scaling_factor(
 	width_scaling_factor.min(height_scaling_factor)
 }
 
-// Entry Point
-fn main() -> AnyhowResult<()> {
-	// Read the file path from the command line
-	let args = args().collect::<Vec<_>>();
-	if args.len() != 2 {
-		return Err(anyhow!("exactly one argument, the file path, is required"));
-	}
-	let file_path = PathBuf::from(&args[1]);
-
-	// Load the presentation
-	let presentation = Presentation::load_from_path(file_path.clone())
-		.with_context(|| "unable to load the presentation")?;
-
-	// Load all images into memory
-	println!("Loading images...");
-	let base_path = file_path.parent();
+fn load_images_from_presentation<'a>(
+	presentation: &'a Presentation,
+	base_path: Option<&Path>,
+) -> AnyhowResult<HashMap<&'a String, DynamicImage>> {
 	let mut image_cache = HashMap::new();
+
 	for image_path in presentation.0.iter().filter_map(|slide| match slide {
 		Slide::Image(image_path) => Some(image_path),
 		Slide::Text(_) | Slide::Empty => None,
@@ -237,13 +230,33 @@ fn main() -> AnyhowResult<()> {
 
 		image_cache.insert(image_path, image);
 	}
-	println!("Loaded images.");
 
-	// Run the presentation
-	run(&presentation, image_cache)
+	Ok(image_cache)
 }
 
-fn run(
+// Entry Point
+fn main() -> AnyhowResult<()> {
+	// Read the file path from the command line
+	let args = args().collect::<Vec<_>>();
+	if args.len() != 2 {
+		return Err(anyhow!("exactly one argument, the file path, is required"));
+	}
+	let file_path = PathBuf::from(&args[1]);
+
+	// Load the presentation
+	let presentation = Presentation::load_from_path(file_path.clone())
+		.with_context(|| "unable to load the presentation")?;
+
+	// Load all images into memory
+	let base_path = file_path.parent();
+	let image_cache = load_images_from_presentation(&presentation, base_path)
+		.with_context(|| "unable to load a presentation image")?;
+
+	// Run the presentation
+	run_presentation(&presentation, image_cache)
+}
+
+fn run_presentation(
 	presentation: &Presentation,
 	image_cache: HashMap<&String, DynamicImage>,
 ) -> AnyhowResult<()> {
@@ -285,8 +298,7 @@ fn run(
 
 	let mut encoder: Encoder<_, _> = factory.create_command_buffer().into();
 
-	println!("Preparing images...");
-	let mut image_shader_cache = HashMap::new();
+	let mut image_texture_cache = HashMap::new();
 	for (image_path, image) in image_cache {
 		let image_dimensions = image.dimensions();
 		let image_data = image.to_rgba8();
@@ -301,9 +313,8 @@ fn run(
 			.with_context(|| {
 				format!("unable to prepare the image \"{image_path}\" for rendering")
 			})?;
-		image_shader_cache.insert(image_path, (image_dimensions, resource_view));
+		image_texture_cache.insert(image_path, (image_dimensions, resource_view));
 	}
-	println!("Prepared images.");
 
 	let pipeline = factory
 		.create_pipeline_simple(
@@ -410,7 +421,7 @@ fn run(
 						}
 						Slide::Image(image_path) => {
 							let ((image_width, image_height), resource_view) =
-								image_shader_cache[image_path].clone();
+								image_texture_cache[image_path].clone();
 							let (image_width, image_height) =
 								(image_width as f32, image_height as f32);
 
