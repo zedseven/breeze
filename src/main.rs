@@ -109,6 +109,14 @@ const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 const DEFAULT_BACKGROUND_COLOUR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const DEFAULT_FOREGROUND_COLOUR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const DEFAULT_TITLE: &str = "`breeze` Presentation";
+/// The minimum scaling factor at which to enable nearest-neighbour image
+/// sampling.
+///
+/// This heuristic matches what [Emulsion] uses.
+///
+/// [Emulsion]: https://github.com/ArturKovacs/emulsion/blob/db5992432ca9f3e0044b967713316ce267e64837/src/widgets/picture_widget.rs#L35
+const IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALE_MINIMUM: f32 = 4.0;
+const RECT_VERTEX_INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
 // Type Definitions
 type ColourFormat = Srgba8;
@@ -126,8 +134,6 @@ gfx_defines! {
 		render_target: RenderTarget<ColourFormat> = "Target0",
 	}
 }
-
-const RECT_VERTEX_INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
 /// Converts a rect defined by coordinates in pixels to a set of vertices that
 /// use normalised coordinates for rendering.
@@ -294,7 +300,11 @@ fn run(
 			pipe::new(),
 		)
 		.with_context(|| "unable to prepare the rendering pipeline for texture rendering")?;
-	let image_sampler =
+	let image_sampler_anisotropic = factory.create_sampler(SamplerInfo::new(
+		FilterMethod::Anisotropic(16),
+		WrapMode::Clamp,
+	));
+	let image_sampler_nearest_neighbour =
 		factory.create_sampler(SamplerInfo::new(FilterMethod::Scale, WrapMode::Clamp));
 	let mut data = pipe::Data {
 		vertex_buffer:   None,
@@ -417,7 +427,15 @@ fn run(
 							let (vertex_buffer, slice) = factory
 								.create_vertex_buffer_with_slice(&vertices, RECT_VERTEX_INDICES);
 
-							data.current_texture = Some((resource_view, image_sampler.clone()));
+							let image_sampler = if new_scale_multiplier
+								>= IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALE_MINIMUM
+							{
+								image_sampler_nearest_neighbour.clone()
+							} else {
+								image_sampler_anisotropic.clone()
+							};
+
+							data.current_texture = Some((resource_view, image_sampler));
 							data.vertex_buffer = Some(vertex_buffer);
 
 							encoder.draw(&slice, &pipeline, &data);
