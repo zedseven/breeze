@@ -79,6 +79,28 @@ const DEFAULT_TITLE: &str = "`breeze` Presentation";
 /// [Emulsion]: https://github.com/ArturKovacs/emulsion/blob/db5992432ca9f3e0044b967713316ce267e64837/src/widgets/picture_widget.rs#L35
 const IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM: f32 = 4.0;
 
+// Entry Point
+fn main() -> AnyhowResult<()> {
+	// Read the file path from the command line
+	let args = args().collect::<Vec<_>>();
+	if args.len() != 2 {
+		return Err(anyhow!("exactly one argument, the file path, is required"));
+	}
+	let file_path = PathBuf::from(&args[1]);
+
+	// Load the presentation
+	let presentation = Presentation::load_from_path(file_path.clone())
+		.with_context(|| "unable to load the presentation")?;
+
+	// Load all images into memory
+	let base_path = file_path.parent();
+	let image_cache = load_images_from_presentation(&presentation, base_path)
+		.with_context(|| "unable to load a presentation image")?;
+
+	// Run the presentation
+	run_presentation(&presentation, image_cache)
+}
+
 fn load_images_from_presentation<'a>(
 	presentation: &'a Presentation,
 	base_path: Option<&Path>,
@@ -123,28 +145,6 @@ fn load_images_from_presentation<'a>(
 	}
 
 	Ok(image_cache)
-}
-
-// Entry Point
-fn main() -> AnyhowResult<()> {
-	// Read the file path from the command line
-	let args = args().collect::<Vec<_>>();
-	if args.len() != 2 {
-		return Err(anyhow!("exactly one argument, the file path, is required"));
-	}
-	let file_path = PathBuf::from(&args[1]);
-
-	// Load the presentation
-	let presentation = Presentation::load_from_path(file_path.clone())
-		.with_context(|| "unable to load the presentation")?;
-
-	// Load all images into memory
-	let base_path = file_path.parent();
-	let image_cache = load_images_from_presentation(&presentation, base_path)
-		.with_context(|| "unable to load a presentation image")?;
-
-	// Run the presentation
-	run_presentation(&presentation, image_cache)
 }
 
 fn run_presentation(
