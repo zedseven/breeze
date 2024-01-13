@@ -177,6 +177,7 @@ dependencies = [
  "anyhow",
  "gfx",
  "gfx_core",
+ "gfx_device_gl",
  "gfx_glyph",
  "glutin",
  "glutin-winit",
