@@ -23,7 +23,7 @@ use gfx::{
 };
 use gfx_core::{
 	format::Vec4,
-	handle::{DepthStencilView, Sampler, ShaderResourceView},
+	handle::{DepthStencilView, RenderTargetView, Sampler, ShaderResourceView},
 	texture::{FilterMethod, SamplerInfo, WrapMode},
 	Device as DeviceTrait,
 	Factory as FactoryTrait,
@@ -86,21 +86,24 @@ gfx_defines! {
 }
 
 pub struct Renderer<'a> {
-	//
+	// Window Management
 	window: Window,
+	last_view_size: PhysicalSize<u32>,
+	// Rendering Infrastructure
 	gl_surface: Surface<WindowSurface>,
 	gl_context: PossiblyCurrentContext,
 	device: Device,
 	factory: Factory,
-	data: image_pipeline::Data<Resources>,
+	colour_view: RenderTargetView<Resources, ColourFormat>,
 	depth_view: DepthStencilView<Resources, DepthFormat>,
-	last_view_size: PhysicalSize<u32>,
 	encoder: Encoder<Resources, CommandBuffer>,
 	glyph_brush: GlyphBrush<Resources, Factory, FontArc>,
-	image_texture_cache: HashMap<&'a String, CachedImageTexture>,
+	image_pipeline: PipelineState<Resources, image_pipeline::Meta>,
+	// Runtime State
 	image_sampler_nearest_neighbour: Sampler<Resources>,
 	image_sampler_anisotropic: Sampler<Resources>,
-	pipeline: PipelineState<Resources, image_pipeline::Meta>,
+	image_texture_cache: HashMap<&'a String, CachedImageTexture>,
+	image_pipeline_data: image_pipeline::Data<Resources>,
 }
 
 impl<'a> Renderer<'a> {
@@ -114,7 +117,7 @@ impl<'a> Renderer<'a> {
 		// to do it without any consistency or documentation led me to just use the same
 		// approach that the `glyph_brush` examples use. Perhaps this can be revisited
 		// in the future.
-		// https://github.com/alexheretic/glyph-brush/blob/main/gfx-glyph/examples/paragraph.rs
+		// https://github.com/alexheretic/glyph-brush/blob/bcf31b4ea716e86f942f018a580693fa3cabc8e2/gfx-glyph/examples/paragraph.rs
 		let Init {
 			window,
 			gl_surface,
@@ -133,45 +136,47 @@ impl<'a> Renderer<'a> {
 
 		let glyph_brush = GlyphBrushBuilder::using_font(font).build(factory.clone());
 
-		let image_texture_cache = convert_image_cache_to_textures(&mut factory, image_cache)
-			.with_context(|| "unable to prepare a presentation image for rendering")?;
-
-		let pipeline = factory
+		let image_pipeline = factory
 			.create_pipeline_simple(
 				include_bytes!("./texture_simple.vert"),
 				include_bytes!("./texture_simple.frag"),
 				image_pipeline::new(),
 			)
 			.with_context(|| "unable to prepare the rendering pipeline for texture rendering")?;
+		let image_pipeline_data = image_pipeline::Data {
+			vertex_buffer:   None,
+			current_texture: None,
+			render_target:   colour_view.clone(),
+		};
+
 		let image_sampler_anisotropic = factory.create_sampler(SamplerInfo::new(
 			FilterMethod::Anisotropic(16),
 			WrapMode::Clamp,
 		));
 		let image_sampler_nearest_neighbour =
 			factory.create_sampler(SamplerInfo::new(FilterMethod::Scale, WrapMode::Clamp));
-		let data = image_pipeline::Data {
-			vertex_buffer:   None,
-			current_texture: None,
-			render_target:   colour_view,
-		};
 
 		let last_view_size = window.inner_size();
 
+		let image_texture_cache = convert_image_cache_to_textures(&mut factory, image_cache)
+			.with_context(|| "unable to prepare a presentation image for rendering")?;
+
 		Ok(Self {
 			window,
+			last_view_size,
 			gl_surface,
 			gl_context,
 			device,
 			factory,
-			data,
+			colour_view,
 			depth_view,
-			last_view_size,
 			encoder,
 			glyph_brush,
-			image_texture_cache,
+			image_pipeline,
 			image_sampler_nearest_neighbour,
 			image_sampler_anisotropic,
-			pipeline,
+			image_texture_cache,
+			image_pipeline_data,
 		})
 	}
 
@@ -192,19 +197,15 @@ impl<'a> Renderer<'a> {
 		if self.last_view_size != window_size {
 			self.window
 				.resize_surface(&self.gl_surface, &self.gl_context);
-			resize_views(
-				window_size,
-				&mut self.data.render_target,
-				&mut self.depth_view,
-			);
+			resize_views(window_size, &mut self.colour_view, &mut self.depth_view);
 			self.last_view_size = window_size;
 		}
 
 		// Clear the screen with the background colour
 		self.encoder
-			.clear(&self.data.render_target, DEFAULT_BACKGROUND_COLOUR);
+			.clear(&self.colour_view, DEFAULT_BACKGROUND_COLOUR);
 
-		let (screen_width, screen_height, ..) = self.data.render_target.get_dimensions();
+		let (screen_width, screen_height, ..) = self.colour_view.get_dimensions();
 		let (screen_width, screen_height) = (f32::from(screen_width), f32::from(screen_height));
 		let (usable_width, usable_height) = (
 			screen_width * USABLE_WIDTH_PERCENTAGE,
@@ -276,7 +277,7 @@ impl<'a> Renderer<'a> {
 				// Draw the text
 				self.glyph_brush
 					.use_queue()
-					.draw(&mut self.encoder, &self.data.render_target)
+					.draw(&mut self.encoder, &self.colour_view)
 					.unwrap();
 			}
 			Slide::Image(image_path) => {
@@ -321,10 +322,12 @@ impl<'a> Renderer<'a> {
 						self.image_sampler_anisotropic.clone()
 					};
 
-				self.data.current_texture = Some((resource_view.clone(), image_sampler));
-				self.data.vertex_buffer = Some(vertex_buffer);
+				self.image_pipeline_data.current_texture =
+					Some((resource_view.clone(), image_sampler));
+				self.image_pipeline_data.vertex_buffer = Some(vertex_buffer);
 
-				self.encoder.draw(&slice, &self.pipeline, &self.data);
+				self.encoder
+					.draw(&slice, &self.image_pipeline, &self.image_pipeline_data);
 			}
 			Slide::Empty => {}
 		}
