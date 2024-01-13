@@ -120,7 +120,6 @@ const DEFAULT_TITLE: &str = "`breeze` Presentation";
 ///
 /// [Emulsion]: https://github.com/ArturKovacs/emulsion/blob/db5992432ca9f3e0044b967713316ce267e64837/src/widgets/picture_widget.rs#L35
 const IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM: f32 = 4.0;
-const RECT_VERTEX_INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
 // Type Definitions
 type ColourFormat = Srgba8;
@@ -370,6 +369,13 @@ fn run_presentation(
 					let current_slide_value = &presentation.0[current_slide];
 					match current_slide_value {
 						Slide::Text(text) => {
+							/// Floating-point imprecision can cause text to
+							/// wrap when it's not supposed to because it's
+							/// ever-so-slightly larger than the bounds.
+							///
+							/// This value exists to account for that.
+							const FLOATING_POINT_IMPRECISION_ACCOMMODATION: f32 = 0.1;
+
 							// Start with an unscaled, non-centered layout in the top-left corner
 							let mut section = Section::default()
 								.add_text(
@@ -378,7 +384,7 @@ fn run_presentation(
 										.with_color(DEFAULT_FOREGROUND_COLOUR),
 								)
 								.with_layout(non_centered_layout)
-								.with_bounds((usable_width, usable_height));
+								.with_bounds((f32::INFINITY, f32::INFINITY));
 
 							// Get the dimensions of it with the base scale so that it can be scaled
 							// to fit the usable space
@@ -409,6 +415,10 @@ fn run_presentation(
 								(screen_width - scaled_section_width) / 2.0,
 								screen_height / 2.0,
 							);
+							section.bounds = (
+								usable_width + FLOATING_POINT_IMPRECISION_ACCOMMODATION,
+								usable_height,
+							);
 
 							// Queue the finished section
 							glyph_brush.queue(&section);
@@ -420,6 +430,8 @@ fn run_presentation(
 								.unwrap();
 						}
 						Slide::Image(image_path) => {
+							const RECT_VERTEX_INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
+
 							let ((image_width, image_height), resource_view) =
 								image_texture_cache[image_path].clone();
 							let (image_width, image_height) =
