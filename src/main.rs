@@ -62,6 +62,7 @@ use gfx::{
 	TextureSampler,
 	VertexBuffer,
 };
+use gfx_core::texture::{FilterMethod, SamplerInfo, WrapMode};
 use gfx_glyph::{
 	ab_glyph::FontArc,
 	GlyphBrushBuilder,
@@ -74,7 +75,7 @@ use gfx_glyph::{
 };
 use glutin::surface::GlSurface;
 use glutin_winit::GlWindow;
-use image::{io::Reader as ImageReader, DynamicImage};
+use image::{io::Reader as ImageReader, DynamicImage, GenericImageView};
 use old_school_gfx_glutin_ext::{
 	resize_views,
 	window_builder as old_school_gfx_glutin_ext_window_builder,
@@ -120,33 +121,50 @@ gfx_defines! {
 	}
 
 	pipeline pipe {
-		vertex_buffer: VertexBuffer<Vertex> = (),
+		vertex_buffer: PipelineOption<VertexBuffer<Vertex>> = (),
 		current_texture: PipelineOption<TextureSampler<[f32; 4]>> = "t_Current",
 		render_target: RenderTarget<ColourFormat> = "Target0",
 	}
 }
 
-const SQUARE: (&[Vertex], &[u16]) = (
-	&[
+const RECT_VERTEX_INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
+
+/// Converts a rect defined by coordinates in pixels to a set of vertices that
+/// use normalised coordinates for rendering.
+fn screen_rect_to_vertices(
+	screen_width: f32,
+	screen_height: f32,
+	x: f32,
+	y: f32,
+	width: f32,
+	height: f32,
+) -> [Vertex; 4] {
+	let transform_x = |x: f32| -> f32 { (x / screen_width) * 2.0 - 1.0 };
+	let transform_y = |y: f32| -> f32 { (y / screen_height) * 2.0 - 1.0 };
+
+	[
+		// Top Right
 		Vertex {
-			pos: [0.5, -0.5],
-			uv:  [1.0, 0.0],
-		},
-		Vertex {
-			pos: [-0.5, -0.5],
-			uv:  [0.0, 0.0],
-		},
-		Vertex {
-			pos: [-0.5, 0.5],
-			uv:  [0.0, 1.0],
-		},
-		Vertex {
-			pos: [0.5, 0.5],
+			pos: [transform_x(x + width), transform_y(y)],
 			uv:  [1.0, 1.0],
 		},
-	],
-	&[0, 1, 2, 2, 3, 0],
-);
+		// Top Left
+		Vertex {
+			pos: [transform_x(x), transform_y(y)],
+			uv:  [0.0, 1.0],
+		},
+		// Bottom Left
+		Vertex {
+			pos: [transform_x(x), transform_y(y + height)],
+			uv:  [0.0, 0.0],
+		},
+		// Bottom Right
+		Vertex {
+			pos: [transform_x(x + width), transform_y(y + height)],
+			uv:  [1.0, 0.0],
+		},
+	]
+}
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
@@ -162,6 +180,7 @@ fn main() -> AnyhowResult<()> {
 		.with_context(|| "unable to load the presentation")?;
 
 	// Load all images into memory
+	println!("Loading images...");
 	let base_path = file_path.parent();
 	let mut image_cache = HashMap::new();
 	for image_path in presentation.0.iter().filter_map(|slide| match slide {
@@ -183,6 +202,13 @@ fn main() -> AnyhowResult<()> {
 					resolved_image_path.to_string_lossy()
 				)
 			})?
+			.with_guessed_format()
+			.with_context(|| {
+				format!(
+					"unable to guess the format of \"{}\"",
+					resolved_image_path.to_string_lossy()
+				)
+			})?
 			.decode()
 			.with_context(|| {
 				format!(
@@ -193,6 +219,7 @@ fn main() -> AnyhowResult<()> {
 
 		image_cache.insert(image_path, image);
 	}
+	println!("Loaded images.");
 
 	// Run the presentation
 	run(&presentation, image_cache)
@@ -240,8 +267,10 @@ fn run(
 
 	let mut encoder: Encoder<_, _> = factory.create_command_buffer().into();
 
+	println!("Preparing images...");
 	let mut image_shader_cache = HashMap::new();
 	for (image_path, image) in image_cache {
+		let image_dimensions = image.dimensions();
 		let image_data = image.to_rgba8();
 		let (image_width, image_height) = image_data.dimensions();
 		let kind = Kind::D2(image_width as u16, image_height as u16, AaMode::Single);
@@ -254,8 +283,9 @@ fn run(
 			.with_context(|| {
 				format!("unable to prepare the image \"{image_path}\" for rendering")
 			})?;
-		image_shader_cache.insert(image_path, resource_view);
+		image_shader_cache.insert(image_path, (image_dimensions, resource_view));
 	}
+	println!("Prepared images.");
 
 	let pipeline = factory
 		.create_pipeline_simple(
@@ -264,11 +294,12 @@ fn run(
 			pipe::new(),
 		)
 		.with_context(|| "unable to prepare the rendering pipeline for texture rendering")?;
-	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(SQUARE.0, SQUARE.1);
+	let image_sampler =
+		factory.create_sampler(SamplerInfo::new(FilterMethod::Scale, WrapMode::Clamp));
 	let mut data = pipe::Data {
-		vertex_buffer,
+		vertex_buffer:   None,
 		current_texture: None,
-		render_target: colour_view,
+		render_target:   colour_view,
 	};
 
 	let mut view_size = window.inner_size();
@@ -294,11 +325,12 @@ fn run(
 					// Clear the screen with the background colour
 					encoder.clear(&data.render_target, DEFAULT_BACKGROUND_COLOUR);
 
-					let (width, height, ..) = data.render_target.get_dimensions();
-					let (width, height) = (f32::from(width), f32::from(height));
+					let (screen_width, screen_height, ..) = data.render_target.get_dimensions();
+					let (screen_width, screen_height) =
+						(f32::from(screen_width), f32::from(screen_height));
 					let (usable_width, usable_height) = (
-						width * USABLE_WIDTH_PERCENTAGE,
-						height * USABLE_HEIGHT_PERCENTAGE,
+						screen_width * USABLE_WIDTH_PERCENTAGE,
+						screen_height * USABLE_HEIGHT_PERCENTAGE,
 					);
 					let base_scale = BASE_FONT_SIZE * window.scale_factor() as f32;
 
@@ -340,8 +372,10 @@ fn run(
 								.v_align(VerticalAlign::Center);
 							// The reason the calculations for X and Y are different is that the
 							// alignment horizontally and vertically is different
-							section.screen_position =
-								((width - scaled_section_width) / 2.0, height / 2.0);
+							section.screen_position = (
+								(screen_width - scaled_section_width) / 2.0,
+								screen_height / 2.0,
+							);
 
 							// Queue the finished section
 							glyph_brush.queue(&section);
@@ -353,9 +387,39 @@ fn run(
 								.unwrap();
 						}
 						Slide::Image(image_path) => {
-							let resource_view = image_shader_cache[image_path].clone();
-							data.current_texture =
-								Some((resource_view, factory.create_sampler_linear()));
+							let ((image_width, image_height), resource_view) =
+								image_shader_cache[image_path].clone();
+							let (image_width, image_height) =
+								(image_width as f32, image_height as f32);
+
+							let new_width_scale_multiplier = usable_width / image_width;
+							let new_height_scale_multiplier = usable_height / image_height;
+							let new_scale_multiplier =
+								new_width_scale_multiplier.min(new_height_scale_multiplier);
+
+							let (scaled_width, scaled_height) = (
+								image_width * new_scale_multiplier,
+								image_height * new_scale_multiplier,
+							);
+							let (x, y) = (
+								(screen_width - scaled_width) / 2.0,
+								(screen_height - scaled_height) / 2.0,
+							);
+
+							let vertices = screen_rect_to_vertices(
+								screen_width,
+								screen_height,
+								x,
+								y,
+								scaled_width,
+								scaled_height,
+							);
+							let (vertex_buffer, slice) = factory
+								.create_vertex_buffer_with_slice(&vertices, RECT_VERTEX_INDICES);
+
+							data.current_texture = Some((resource_view, image_sampler.clone()));
+							data.vertex_buffer = Some(vertex_buffer);
+
 							encoder.draw(&slice, &pipeline, &data);
 						}
 						Slide::Empty => {}
