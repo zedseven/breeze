@@ -115,7 +115,7 @@ const DEFAULT_TITLE: &str = "`breeze` Presentation";
 /// This heuristic matches what [Emulsion] uses.
 ///
 /// [Emulsion]: https://github.com/ArturKovacs/emulsion/blob/db5992432ca9f3e0044b967713316ce267e64837/src/widgets/picture_widget.rs#L35
-const IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALE_MINIMUM: f32 = 4.0;
+const IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM: f32 = 4.0;
 const RECT_VERTEX_INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
 // Type Definitions
@@ -170,6 +170,18 @@ fn screen_rect_to_vertices(
 			uv:  [1.0, 0.0],
 		},
 	]
+}
+
+fn calculate_scaling_factor(
+	usable_width: f32,
+	usable_height: f32,
+	unscaled_width: f32,
+	unscaled_height: f32,
+) -> f32 {
+	let width_scaling_factor = usable_width / unscaled_width;
+	let height_scaling_factor = usable_height / unscaled_height;
+
+	width_scaling_factor.min(height_scaling_factor)
 }
 
 // Entry Point
@@ -364,16 +376,16 @@ fn run(
 								.expect("the section is not empty");
 
 							// Calculate the new scale and set the final values for the section
-							let new_width_scale_multiplier =
-								usable_width / unscaled_section_dimensions.width();
-							let new_height_scale_multiplier =
-								usable_height / unscaled_section_dimensions.height();
-							let new_scale_multiplier =
-								new_width_scale_multiplier.min(new_height_scale_multiplier);
-							let new_scale = base_scale * new_scale_multiplier;
+							let scaling_factor = calculate_scaling_factor(
+								usable_width,
+								usable_height,
+								unscaled_section_dimensions.width(),
+								unscaled_section_dimensions.height(),
+							);
+							let new_scale = base_scale * scaling_factor;
 
 							let scaled_section_width =
-								unscaled_section_dimensions.width() * new_scale_multiplier;
+								unscaled_section_dimensions.width() * scaling_factor;
 
 							// There's only one text element, so this is safe to do
 							section.text[0].scale = new_scale.into();
@@ -402,15 +414,15 @@ fn run(
 							let (image_width, image_height) =
 								(image_width as f32, image_height as f32);
 
-							let new_width_scale_multiplier = usable_width / image_width;
-							let new_height_scale_multiplier = usable_height / image_height;
-							let new_scale_multiplier =
-								new_width_scale_multiplier.min(new_height_scale_multiplier);
-
-							let (scaled_width, scaled_height) = (
-								image_width * new_scale_multiplier,
-								image_height * new_scale_multiplier,
+							let scaling_factor = calculate_scaling_factor(
+								usable_width,
+								usable_height,
+								image_width,
+								image_height,
 							);
+
+							let (scaled_width, scaled_height) =
+								(image_width * scaling_factor, image_height * scaling_factor);
 							let (x, y) = (
 								(screen_width - scaled_width) / 2.0,
 								(screen_height - scaled_height) / 2.0,
@@ -427,8 +439,8 @@ fn run(
 							let (vertex_buffer, slice) = factory
 								.create_vertex_buffer_with_slice(&vertices, RECT_VERTEX_INDICES);
 
-							let image_sampler = if new_scale_multiplier
-								>= IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALE_MINIMUM
+							let image_sampler = if scaling_factor
+								>= IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM
 							{
 								image_sampler_nearest_neighbour.clone()
 							} else {
