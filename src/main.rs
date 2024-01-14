@@ -70,6 +70,7 @@ const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 const DEFAULT_BACKGROUND_COLOUR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const DEFAULT_FOREGROUND_COLOUR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+const DEFAULT_FONT_LIST: &[&str] = &["Roboto", "Segoe UI", "Arial", "DejaVu Sans", "Ubuntu"];
 const DEFAULT_TITLE: &str = "`breeze` Presentation";
 /// The minimum scaling factor at which to enable nearest-neighbour image
 /// sampling.
@@ -161,9 +162,10 @@ fn run_presentation(
 	event_loop.set_control_flow(ControlFlow::Wait);
 	let window_builder = WindowBuilder::new().with_title(window_title);
 
-	let font_name = "PragmataPro Mono Liga";
-	let font =
-		load_font(font_name).with_context(|| format!("unable to load the font \"{font_name}\""))?;
+	let mut font_names = vec!["PragmataPro Mono Liga"];
+	font_names.extend_from_slice(DEFAULT_FONT_LIST);
+	let font = load_font(font_names.as_slice())
+		.with_context(|| "unable to find & load any font in the list")?;
 
 	let mut renderer = Renderer::new(&event_loop, window_builder, font, image_cache)
 		.with_context(|| "unable to initialise the renderer")?;
