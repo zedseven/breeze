@@ -60,7 +60,7 @@ use winit::{
 
 use self::pipeline_option::PipelineOption;
 use crate::{
-	sent::Slide,
+	presentation::Slide,
 	DEFAULT_BACKGROUND_COLOUR,
 	DEFAULT_FOREGROUND_COLOUR,
 	IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM,

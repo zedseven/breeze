@@ -38,8 +38,8 @@
 )]
 
 // Modules
+mod presentation;
 mod renderer;
-mod sent;
 
 // Uses
 use std::{
@@ -61,8 +61,8 @@ use winit::{
 };
 
 use self::{
+	presentation::{Presentation, Slide},
 	renderer::Renderer,
-	sent::{Presentation, Slide},
 };
 
 // Constants
