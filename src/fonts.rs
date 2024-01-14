@@ -26,11 +26,10 @@ pub fn load_font(font_names: &[&str]) -> Option<FontArc> {
 		// Load the font
 		let font_path = font_results[0];
 		let mut font_bytes = Vec::new();
-		let mut file = match File::open(font_path.path.as_str()) {
-			Ok(file) => file,
-			Err(_) => continue,
+		let Ok(mut file) = File::open(font_path.path.as_str()) else {
+			continue;
 		};
-		if let Err(_) = file.read_to_end(&mut font_bytes) {
+		if file.read_to_end(&mut font_bytes).is_err() {
 			continue;
 		}
 
