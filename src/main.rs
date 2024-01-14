@@ -38,6 +38,7 @@
 )]
 
 // Modules
+mod fonts;
 mod presentation;
 mod renderer;
 
@@ -49,7 +50,6 @@ use std::{
 };
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
-use gfx_glyph::ab_glyph::FontArc;
 use image::{io::Reader as ImageReader, DynamicImage};
 use winit::{
 	event::{ElementState, Event, MouseButton, WindowEvent},
@@ -60,6 +60,7 @@ use winit::{
 };
 
 use self::{
+	fonts::load_font,
 	presentation::{Presentation, Slide},
 	renderer::Renderer,
 };
@@ -160,11 +161,9 @@ fn run_presentation(
 	event_loop.set_control_flow(ControlFlow::Wait);
 	let window_builder = WindowBuilder::new().with_title(window_title);
 
-	let font = FontArc::try_from_slice(include_bytes!(
-		"/home/zacc/typefaces/pro-fonts/PragmataPro/PragmataPro0.829/PragmataPro_Mono_R_liga_0829.\
-		 ttf"
-	))
-	.with_context(|| "unable to load the font")?;
+	let font_name = "PragmataPro Mono Liga";
+	let font =
+		load_font(font_name).with_context(|| format!("unable to load the font \"{font_name}\""))?;
 
 	let mut renderer = Renderer::new(&event_loop, window_builder, font, image_cache)
 		.with_context(|| "unable to initialise the renderer")?;

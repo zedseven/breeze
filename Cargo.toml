@@ -22,4 +22,5 @@ glutin = "0.31"
 glutin-winit = "0.4"
 image = "0.24"
 old_school_gfx_glutin_ext = "0.32"
+rust-fontconfig = { git = "https://github.com/zedseven/rust-fontconfig.git", branch = "combined" } # Until all of my PRs are merged
 winit = "0.29"
