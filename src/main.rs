@@ -49,7 +49,6 @@ use std::{
 };
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
-pub use gfx; // Required by `gfx_defines`
 use gfx_glyph::ab_glyph::FontArc;
 use image::{io::Reader as ImageReader, DynamicImage};
 use winit::{
