@@ -58,8 +58,8 @@ commit_parsers = [
 protect_breaking_commits = true
 # Filter out the commits that are not matched by commit parsers
 filter_commits = false
-# Glob pattern for matching git tags
-tag_pattern = "*"
+# Regex for matching git tags
+tag_pattern = ".*"
 # Regex for skipping tags
 skip_tags = ""
 # Regex for ignoring tags
