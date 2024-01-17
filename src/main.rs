@@ -70,7 +70,28 @@ const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 const DEFAULT_FOREGROUND_COLOUR: Colour = [1.0, 1.0, 1.0, 1.0];
 const DEFAULT_BACKGROUND_COLOUR: Colour = [0.0, 0.0, 0.0, 1.0];
-const DEFAULT_FONT_LIST: &[&str] = &["Roboto", "Segoe UI", "Arial", "DejaVu Sans", "Ubuntu"];
+/// The default search list for system fonts, searched in order from top to
+/// bottom, using the first one that's found.
+///
+/// All of these are sans-serif typefaces.
+///
+/// Some of these selections are based on the following article: https://www.ctrl.blog/entry/font-stack-text.html
+const DEFAULT_FONT_LIST: &[&str] = &[
+	"Roboto",
+	"Aptos",
+	"Segoe UI",
+	"Noto Sans",
+	"Calibri",
+	"Arial Nova",
+	"Arial",
+	"Helvetica Neue",
+	"Helvetica",
+	"Arimo",
+	"Liberation Sans",
+	"Nimbus Sans",
+	"DejaVu Sans",
+	"Ubuntu",
+];
 const DEFAULT_TITLE: &str = "`breeze` Presentation";
 /// The minimum scaling factor at which to enable nearest-neighbour image
 /// sampling.
