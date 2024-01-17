@@ -61,8 +61,7 @@ use winit::{
 use self::pipeline_option::PipelineOption;
 use crate::{
 	presentation::Slide,
-	DEFAULT_BACKGROUND_COLOUR,
-	DEFAULT_FOREGROUND_COLOUR,
+	Colour,
 	IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM,
 	USABLE_HEIGHT_PERCENTAGE,
 	USABLE_WIDTH_PERCENTAGE,
@@ -80,7 +79,7 @@ gfx_defines! {
 
 	pipeline image_pipeline {
 		vertex_buffer: PipelineOption<VertexBuffer<Vertex>> = (),
-		current_texture: PipelineOption<TextureSampler<[f32; 4]>> = "t_Current",
+		current_texture: PipelineOption<TextureSampler<Colour>> = "t_Current",
 		render_target: RenderTarget<ColourFormat> = "Target0",
 	}
 }
@@ -102,6 +101,8 @@ pub struct Renderer<'a> {
 	image_pipeline: PipelineState<Resources, image_pipeline::Meta>,
 
 	// Runtime State
+	foreground_colour:               Colour,
+	background_colour:               Colour,
 	image_sampler_nearest_neighbour: Sampler<Resources>,
 	image_sampler_anisotropic:       Sampler<Resources>,
 	image_texture_cache:             HashMap<&'a String, CachedImageTexture>,
@@ -113,6 +114,8 @@ impl<'a> Renderer<'a> {
 		event_loop: &EventLoop<()>,
 		window_builder: WindowBuilder,
 		font: FontArc,
+		foreground_colour: Colour,
+		background_colour: Colour,
 		image_cache: HashMap<&'a String, DynamicImage>,
 	) -> AnyhowResult<Self> {
 		// I wanted to implement the renderer initialisation myself, but the myriad ways
@@ -175,6 +178,8 @@ impl<'a> Renderer<'a> {
 			encoder,
 			glyph_brush,
 			image_pipeline,
+			foreground_colour,
+			background_colour,
 			image_sampler_nearest_neighbour,
 			image_sampler_anisotropic,
 			image_texture_cache,
@@ -213,7 +218,7 @@ impl<'a> Renderer<'a> {
 
 		// Clear the screen with the background colour
 		self.encoder
-			.clear(&self.colour_view, DEFAULT_BACKGROUND_COLOUR);
+			.clear(&self.colour_view, self.background_colour);
 
 		let (screen_width, screen_height, ..) = self.colour_view.get_dimensions();
 		let (screen_width, screen_height) = (f32::from(screen_width), f32::from(screen_height));
@@ -242,7 +247,7 @@ impl<'a> Renderer<'a> {
 					.add_text(
 						Text::new(text)
 							.with_scale(base_scale)
-							.with_color(DEFAULT_FOREGROUND_COLOUR),
+							.with_color(self.foreground_colour),
 					)
 					.with_layout(NON_CENTERED_LAYOUT)
 					.with_bounds((f32::INFINITY, f32::INFINITY));

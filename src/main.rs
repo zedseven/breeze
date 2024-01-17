@@ -68,8 +68,8 @@ use self::{
 // Constants
 const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
-const DEFAULT_BACKGROUND_COLOUR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const DEFAULT_FOREGROUND_COLOUR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+const DEFAULT_FOREGROUND_COLOUR: Colour = [1.0, 1.0, 1.0, 1.0];
+const DEFAULT_BACKGROUND_COLOUR: Colour = [0.0, 0.0, 0.0, 1.0];
 const DEFAULT_FONT_LIST: &[&str] = &["Roboto", "Segoe UI", "Arial", "DejaVu Sans", "Ubuntu"];
 const DEFAULT_TITLE: &str = "`breeze` Presentation";
 /// The minimum scaling factor at which to enable nearest-neighbour image
@@ -79,6 +79,9 @@ const DEFAULT_TITLE: &str = "`breeze` Presentation";
 ///
 /// [Emulsion]: https://github.com/ArturKovacs/emulsion/blob/db5992432ca9f3e0044b967713316ce267e64837/src/widgets/picture_widget.rs#L35
 const IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM: f32 = 4.0;
+
+// Type Definitions
+type Colour = [f32; 4];
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
@@ -108,7 +111,7 @@ fn load_images_from_presentation<'a>(
 ) -> AnyhowResult<HashMap<&'a String, DynamicImage>> {
 	let mut image_cache = HashMap::new();
 
-	for image_path in presentation.0.iter().filter_map(|slide| match slide {
+	for image_path in presentation.slides.iter().filter_map(|slide| match slide {
 		Slide::Image(image_path) => Some(image_path),
 		Slide::Text(_) | Slide::Empty => None,
 	}) {
@@ -156,19 +159,41 @@ fn run_presentation(
 		.try_get_title()
 		.unwrap_or_else(|| DEFAULT_TITLE.to_owned());
 
+	// Load the font to use for rendering text
+	// The user font list is extended with the default list so that there's a
+	// fallback in case none of the user fonts can be found
+	let mut font_list = presentation
+		.font_list
+		.iter()
+		.map(String::as_str)
+		.collect::<Vec<_>>();
+	font_list.extend_from_slice(DEFAULT_FONT_LIST);
+	let font = load_font(font_list.as_slice())
+		.with_context(|| "unable to find & load any font in the list")?;
+
+	// Prepare the colours to use
+	let foreground_colour = presentation
+		.foreground_colour
+		.unwrap_or(DEFAULT_FOREGROUND_COLOUR);
+	let background_colour = presentation
+		.background_colour
+		.unwrap_or(DEFAULT_BACKGROUND_COLOUR);
+
 	// Initialise the event loop and renderer
 	let event_loop =
 		EventLoop::new().with_context(|| "unable to initialise the display backend")?;
 	event_loop.set_control_flow(ControlFlow::Wait);
 	let window_builder = WindowBuilder::new().with_title(window_title);
 
-	let mut font_names = vec!["PragmataPro Mono Liga"];
-	font_names.extend_from_slice(DEFAULT_FONT_LIST);
-	let font = load_font(font_names.as_slice())
-		.with_context(|| "unable to find & load any font in the list")?;
-
-	let mut renderer = Renderer::new(&event_loop, window_builder, font, image_cache)
-		.with_context(|| "unable to initialise the renderer")?;
+	let mut renderer = Renderer::new(
+		&event_loop,
+		window_builder,
+		font,
+		foreground_colour,
+		background_colour,
+		image_cache,
+	)
+	.with_context(|| "unable to initialise the renderer")?;
 
 	// Runtime State
 	let mut current_slide = 0;
@@ -182,7 +207,9 @@ fn run_presentation(
 				Event::AboutToWait => window.request_redraw(),
 				Event::WindowEvent { event, .. } => match event {
 					WindowEvent::CloseRequested => window_target.exit(),
-					WindowEvent::RedrawRequested => renderer.render(&presentation.0[current_slide]),
+					WindowEvent::RedrawRequested => {
+						renderer.render(&presentation.slides[current_slide]);
+					}
 					WindowEvent::MouseInput {
 						state: ElementState::Pressed,
 						button: MouseButton::Right | MouseButton::Back,
@@ -238,7 +265,7 @@ fn change_slides(
 	forward: bool,
 ) {
 	if forward {
-		if *current_slide < presentation.0.len() - 1 {
+		if *current_slide < presentation.slides.len() - 1 {
 			*current_slide += 1;
 			window.request_redraw();
 		}
