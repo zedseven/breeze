@@ -230,6 +230,7 @@ fn run_presentation(
 			match event {
 				Event::WindowEvent { event, .. } => match event {
 					WindowEvent::CloseRequested => window_target.exit(),
+					WindowEvent::Focused(true) => window.request_redraw(),
 					WindowEvent::RedrawRequested => {
 						renderer.render(&presentation.slides[current_slide]);
 					}
