@@ -37,7 +37,9 @@ filter_unconventional = true
 # Process each line of a commit as an individual commit
 split_commits = false
 # Regex for preprocessing the commit messages
-commit_preprocessors = []
+commit_preprocessors = [
+	{ pattern = "(.*?)\\n.*", replace = "${1}"},
+]
 # Regex for parsing and grouping commits
 commit_parsers = [
 	{ message = "^feat", group = "Features" },
