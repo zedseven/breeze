@@ -405,23 +405,23 @@ fn screen_rect_to_vertices(
 	[
 		// Top Right
 		Vertex {
-			pos: [transform_x(x + width), transform_y(y)],
-			uv:  [1.0, 1.0],
+			pos: [transform_x(x + width), transform_y(y + height)],
+			uv:  [1.0, 0.0],
 		},
 		// Top Left
-		Vertex {
-			pos: [transform_x(x), transform_y(y)],
-			uv:  [0.0, 1.0],
-		},
-		// Bottom Left
 		Vertex {
 			pos: [transform_x(x), transform_y(y + height)],
 			uv:  [0.0, 0.0],
 		},
+		// Bottom Left
+		Vertex {
+			pos: [transform_x(x), transform_y(y)],
+			uv:  [0.0, 1.0],
+		},
 		// Bottom Right
 		Vertex {
-			pos: [transform_x(x + width), transform_y(y + height)],
-			uv:  [1.0, 0.0],
+			pos: [transform_x(x + width), transform_y(y)],
+			uv:  [1.0, 1.0],
 		},
 	]
 }
