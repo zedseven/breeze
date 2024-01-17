@@ -2,7 +2,7 @@
 use std::io::Result;
 
 #[cfg(windows)]
-use winres::WindowsResource;
+use winresource::WindowsResource;
 
 // Constants
 const BUILD_ASSETS_DIR: &str = ".";
