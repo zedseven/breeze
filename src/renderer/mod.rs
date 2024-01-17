@@ -48,7 +48,7 @@ use glutin::{
 use glutin_winit::GlWindow;
 use image::{DynamicImage, GenericImageView};
 use old_school_gfx_glutin_ext::{
-	resize_views,
+	resized_views,
 	window_builder as old_school_gfx_glutin_ext_window_builder,
 	Init,
 };
@@ -87,23 +87,25 @@ gfx_defines! {
 
 pub struct Renderer<'a> {
 	// Window Management
-	window: Window,
+	window:         Window,
 	last_view_size: PhysicalSize<u32>,
+
 	// Rendering Infrastructure
-	gl_surface: Surface<WindowSurface>,
-	gl_context: PossiblyCurrentContext,
-	device: Device,
-	factory: Factory,
-	colour_view: RenderTargetView<Resources, ColourFormat>,
-	depth_view: DepthStencilView<Resources, DepthFormat>,
-	encoder: Encoder<Resources, CommandBuffer>,
-	glyph_brush: GlyphBrush<Resources, Factory, FontArc>,
+	gl_surface:     Surface<WindowSurface>,
+	gl_context:     PossiblyCurrentContext,
+	device:         Device,
+	factory:        Factory,
+	colour_view:    RenderTargetView<Resources, ColourFormat>,
+	depth_view:     DepthStencilView<Resources, DepthFormat>,
+	encoder:        Encoder<Resources, CommandBuffer>,
+	glyph_brush:    GlyphBrush<Resources, Factory, FontArc>,
 	image_pipeline: PipelineState<Resources, image_pipeline::Meta>,
+
 	// Runtime State
 	image_sampler_nearest_neighbour: Sampler<Resources>,
-	image_sampler_anisotropic: Sampler<Resources>,
-	image_texture_cache: HashMap<&'a String, CachedImageTexture>,
-	image_pipeline_data: image_pipeline::Data<Resources>,
+	image_sampler_anisotropic:       Sampler<Resources>,
+	image_texture_cache:             HashMap<&'a String, CachedImageTexture>,
+	image_pipeline_data:             image_pipeline::Data<Resources>,
 }
 
 impl<'a> Renderer<'a> {
@@ -197,7 +199,15 @@ impl<'a> Renderer<'a> {
 		if self.last_view_size != window_size {
 			self.window
 				.resize_surface(&self.gl_surface, &self.gl_context);
-			resize_views(window_size, &mut self.colour_view, &mut self.depth_view);
+
+			if let Some((new_colour_view, new_depth_view)) =
+				resized_views(window_size, &self.colour_view, &self.depth_view)
+			{
+				self.colour_view = new_colour_view.clone();
+				self.depth_view = new_depth_view;
+				self.image_pipeline_data.render_target = new_colour_view;
+			}
+
 			self.last_view_size = window_size;
 		}
 
