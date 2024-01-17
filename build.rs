@@ -5,6 +5,7 @@ use std::io::Result;
 use winresource::WindowsResource;
 
 // Constants
+#[cfg(windows)]
 const BUILD_ASSETS_DIR: &str = ".";
 #[cfg(windows)]
 const NEUTRAL_LCID: u16 = 0x0000;
