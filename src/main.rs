@@ -68,8 +68,8 @@ use self::{
 // Constants
 const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
-const DEFAULT_FOREGROUND_COLOUR: Colour = [1.0, 1.0, 1.0, 1.0];
-const DEFAULT_BACKGROUND_COLOUR: Colour = [0.0, 0.0, 0.0, 1.0];
+const DEFAULT_FOREGROUND_COLOUR: LinearRgbaColour = [1.0, 1.0, 1.0, 1.0];
+const DEFAULT_BACKGROUND_COLOUR: LinearRgbaColour = [0.0, 0.0, 0.0, 1.0];
 /// The default search list for system fonts, searched in order from top to
 /// bottom, using the first one that's found.
 ///
@@ -102,7 +102,7 @@ const DEFAULT_TITLE: &str = "`breeze` Presentation";
 const IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM: f32 = 4.0;
 
 // Type Definitions
-type Colour = [f32; 4];
+type LinearRgbaColour = [f32; 4];
 
 // Entry Point
 fn main() -> AnyhowResult<()> {

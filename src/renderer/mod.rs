@@ -61,7 +61,7 @@ use winit::{
 use self::pipeline_option::PipelineOption;
 use crate::{
 	presentation::Slide,
-	Colour,
+	LinearRgbaColour,
 	IMAGE_SAMPLING_NEAREST_NEIGHBOUR_SCALING_FACTOR_MINIMUM,
 	USABLE_HEIGHT_PERCENTAGE,
 	USABLE_WIDTH_PERCENTAGE,
@@ -79,7 +79,7 @@ gfx_defines! {
 
 	pipeline image_pipeline {
 		vertex_buffer: PipelineOption<VertexBuffer<Vertex>> = (),
-		current_texture: PipelineOption<TextureSampler<Colour>> = "t_Current",
+		current_texture: PipelineOption<TextureSampler<LinearRgbaColour>> = "t_Current",
 		render_target: RenderTarget<ColourFormat> = "Target0",
 	}
 }
@@ -101,8 +101,8 @@ pub struct Renderer<'a> {
 	image_pipeline: PipelineState<Resources, image_pipeline::Meta>,
 
 	// Runtime State
-	foreground_colour:               Colour,
-	background_colour:               Colour,
+	foreground_colour:               LinearRgbaColour,
+	background_colour:               LinearRgbaColour,
 	image_sampler_nearest_neighbour: Sampler<Resources>,
 	image_sampler_anisotropic:       Sampler<Resources>,
 	image_texture_cache:             HashMap<&'a String, CachedImageTexture>,
@@ -114,8 +114,8 @@ impl<'a> Renderer<'a> {
 		event_loop: &EventLoop<()>,
 		window_builder: WindowBuilder,
 		font: FontArc,
-		foreground_colour: Colour,
-		background_colour: Colour,
+		foreground_colour: LinearRgbaColour,
+		background_colour: LinearRgbaColour,
 		image_cache: HashMap<&'a String, DynamicImage>,
 	) -> AnyhowResult<Self> {
 		// I wanted to implement the renderer initialisation myself, but the myriad ways

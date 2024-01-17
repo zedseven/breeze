@@ -7,7 +7,7 @@ use std::{fs::read_to_string, path::Path};
 
 use anyhow::{Context, Result as AnyhowResult};
 
-use crate::Colour;
+use crate::LinearRgbaColour;
 
 // Constants
 const COMMENT_MARKER: char = '#';
@@ -23,8 +23,8 @@ const BACKGROUND_COLOUR_OPTION_NAME: &str = "bg";
 #[derive(Clone, Debug)]
 pub struct Presentation {
 	pub font_list:         Vec<String>,
-	pub foreground_colour: Option<Colour>,
-	pub background_colour: Option<Colour>,
+	pub foreground_colour: Option<LinearRgbaColour>,
+	pub background_colour: Option<LinearRgbaColour>,
 	pub slides:            Vec<Slide>,
 }
 
@@ -174,7 +174,7 @@ impl Presentation {
 	}
 }
 
-fn parse_colour_hex_code(mut hex_value: &str) -> Option<Colour> {
+fn parse_colour_hex_code(mut hex_value: &str) -> Option<LinearRgbaColour> {
 	const HEX_CODE_MARKER: char = '#';
 	const HEX_RADIX: u32 = 0x10;
 	const EXPECTED_LENGTH: usize = 3 * 2;
@@ -182,8 +182,10 @@ fn parse_colour_hex_code(mut hex_value: &str) -> Option<Colour> {
 
 	fn parse_single_channel(channel_hex_value: &str) -> Option<f32> {
 		let parsed_value = u8::from_str_radix(channel_hex_value, HEX_RADIX).ok()?;
+		let srgb_value = f32::from(parsed_value) / f32::from(u8::MAX);
+		let linear_rgb_value = srgb_to_linear_rgb_channel(srgb_value);
 
-		Some(f32::from(parsed_value) / f32::from(u8::MAX))
+		Some(linear_rgb_value)
 	}
 
 	// Remove the leading marker character if present
@@ -225,4 +227,20 @@ fn char_truncate(string: &mut String, maximum_chars: usize) -> bool {
 	}
 
 	false
+}
+
+/// Converts an sRGB value to linear RGB.
+///
+/// This implementation matches what is specified here: https://registry.khronos.org/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
+fn srgb_to_linear_rgb_channel(srgb_value: f32) -> f32 {
+	const GAMMA: f32 = 2.4;
+	const A: f32 = 0.055;
+	const X: f32 = 0.04045;
+	const PHI: f32 = 12.92;
+
+	if srgb_value > X {
+		((srgb_value + A) / (1.0 + A)).powf(GAMMA)
+	} else {
+		srgb_value / PHI
+	}
 }
