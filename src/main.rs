@@ -212,6 +212,7 @@ fn run_presentation(
 	let mut renderer = Renderer::new(
 		&event_loop,
 		window_builder,
+		|window| window.set_cursor_visible(false),
 		font,
 		foreground_colour,
 		background_colour,

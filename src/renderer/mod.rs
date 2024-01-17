@@ -110,14 +110,18 @@ pub struct Renderer<'a> {
 }
 
 impl<'a> Renderer<'a> {
-	pub fn new(
+	pub fn new<F>(
 		event_loop: &EventLoop<()>,
 		window_builder: WindowBuilder,
+		additional_window_configuration: F,
 		font: FontArc,
 		foreground_colour: LinearRgbaColour,
 		background_colour: LinearRgbaColour,
 		image_cache: HashMap<&'a String, DynamicImage>,
-	) -> AnyhowResult<Self> {
+	) -> AnyhowResult<Self>
+	where
+		F: FnOnce(&Window),
+	{
 		// I wanted to implement the renderer initialisation myself, but the myriad ways
 		// to do it without any consistency or documentation led me to just use the same
 		// approach that the `glyph_brush` examples use. Perhaps this can be revisited
@@ -136,6 +140,8 @@ impl<'a> Renderer<'a> {
 			.build::<ColourFormat, DepthFormat>()
 			.map_err(|error| anyhow!(error.to_string()))
 			.with_context(|| "unable to build the window")?;
+
+		additional_window_configuration(&window);
 
 		let encoder = factory.create_command_buffer().into();
 
