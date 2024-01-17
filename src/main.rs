@@ -56,7 +56,7 @@ use winit::{
 	event_loop::{ControlFlow, EventLoop},
 	keyboard::{Key, NamedKey},
 	platform::modifier_supplement::KeyEventExtModifierSupplement,
-	window::{Window, WindowBuilder},
+	window::{Fullscreen, Window, WindowBuilder},
 };
 
 use self::{
@@ -204,7 +204,9 @@ fn run_presentation(
 	let event_loop =
 		EventLoop::new().with_context(|| "unable to initialise the display backend")?;
 	event_loop.set_control_flow(ControlFlow::Wait);
-	let window_builder = WindowBuilder::new().with_title(window_title);
+	let window_builder = WindowBuilder::new()
+		.with_title(window_title)
+		.with_fullscreen(Some(Fullscreen::Borderless(None)));
 
 	let mut renderer = Renderer::new(
 		&event_loop,
