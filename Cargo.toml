@@ -29,5 +29,6 @@ winit = "0.29"
 winresource = "0.1"
 
 [package.metadata.winresource]
-OriginalFilename = "breeze.exe"
+FileDescription = "breeze" # Even though this property is called a "description", it's actually used as the application name in Task Manager
 LegalCopyright = "© 2024 Zacchary Dempsey-Plante"
+OriginalFilename = "breeze.exe"
