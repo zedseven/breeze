@@ -1,0 +1,70 @@
+# Below are the default values for demonstration purposes:
+#.font:PragmataPro Mono Liga
+#.font:Roboto
+#.font:Helvetica
+#.fg:#ffffff
+#.bg:#000000
+
+breeze
+
+Origins:
+- sent
+- Takahashi Method
+
+Why?
+- PowerPoint is a mess
+- sent only supports Linux
+
+Images are simple:
+
+@logo.png
+This text will not be displayed, since the @ at the start of the first line
+makes this paragraph an image slide.
+
+The text-based sent format:
+- Keeps the focus on the content;
+- Can be edited with any tool;
+- And is easy to share
+
+Benefits over sent:
+- It's cross-platform;
+- Basic styling is possible
+  in the presentation file
+
+What you see is what you get:
+The text is displayed exactly as you typed it;
+No wrapping is done automatically
+
+Usage:
+$ breeze FILE
+
+- One slide per paragraph;
+- Lines starting with # are ignored;
+- Image slide: paragraph containing @FILENAME
+- Empty slide: just use a \ as a paragraph
+
+# This is a comment and will not be part of the presentation
+
+# Multiple empty lines between paragraphs are also ignored
+
+
+\
+
+\@this_line_actually_started_with_a_\.png
+\#This line as well
+Prepend a backslash to kill behaviour of special characters
+
+Presentation styling:
+- All configuration options are comments
+  that start with a dot: #.
+- Because they're comments, they're
+  backwards-compatible with sent
+
+- Font: #.font:Noto Sans
+- Foreground colour: #.fg:#000000
+- Background colour: #.bg:#ffffff
+
+If multiple fonts are specified, the
+first one that is found is used
+
+Thank you.

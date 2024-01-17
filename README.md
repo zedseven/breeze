@@ -16,6 +16,8 @@ cross-platform tool that supports the same format.
 If a feature is missing or core behaviour is drastically different, feel free to
 [open an issue](https://github.com/zedseven/breeze/issues).
 
+For an example presentation, please see [`example.sent`](example.sent).
+
 ## Project License
 This project is licensed under either of
 
