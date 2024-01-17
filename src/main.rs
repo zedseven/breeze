@@ -221,7 +221,7 @@ fn run_presentation(
 	// Runtime State
 	let mut current_slide = 0;
 
-	#[allow(clippy::wildcard_enum_match_arm)]
+	#[allow(clippy::wildcard_enum_match_arm, clippy::single_match)]
 	event_loop
 		.run(move |event, window_target| {
 			let window = renderer.get_window();
