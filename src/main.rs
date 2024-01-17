@@ -225,7 +225,6 @@ fn run_presentation(
 			let window = renderer.get_window();
 
 			match event {
-				Event::AboutToWait => window.request_redraw(),
 				Event::WindowEvent { event, .. } => match event {
 					WindowEvent::CloseRequested => window_target.exit(),
 					WindowEvent::RedrawRequested => {
