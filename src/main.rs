@@ -36,6 +36,7 @@
 	dead_code,
 	unused_macros
 )]
+#![windows_subsystem = "windows"]
 
 // Modules
 mod fonts;
