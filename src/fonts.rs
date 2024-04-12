@@ -12,7 +12,7 @@ pub fn load_font(font_names: &[&str]) -> Option<FontArc> {
 
 	// Perform the search
 	for font_name in font_names {
-		let font_results = font_cache.query(&FcPattern {
+		let font_results = font_cache.query_all(&FcPattern {
 			family: Some((*font_name).to_owned()),
 			bold: PatternMatch::False,
 			italic: PatternMatch::False,

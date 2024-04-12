@@ -1418,8 +1418,9 @@ dependencies = [
 
 [[package]]
 name = "rust-fontconfig"
-version = "0.1.6"
-source = "git+https://github.com/zedseven/rust-fontconfig.git?branch=combined#783023b08247a713bb3e8661482bdf267ffbf73a"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea6002602a06c22f5f4e5ea2ed68854bfce071b48e1092c03874e34d0b59eb4b"
 dependencies = [
  "allsorts",
  "mmapio",
