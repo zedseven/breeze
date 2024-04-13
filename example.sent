@@ -39,7 +39,7 @@ $ breeze FILE
 
 - One slide per paragraph;
 - Lines starting with # are ignored;
-- Image slide: paragraph containing @FILENAME
+- Image slide: paragraph starting with @FILENAME
 - Empty slide: just use a \ as a paragraph
 
 # This is a comment and will not be part of the presentation
