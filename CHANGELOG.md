@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2024-04-13
+
+### Continuous Integration
+
+- Only compile artifacts when new tags are pushed. ([806b5cfa](https://github.com/zedseven/breeze/commit/806b5cfa))
+
+### Miscellaneous Tasks
+
+- Remove the use of `nightly` Rust features so that the program can be compiled with stable Rust. ([6549eed1](https://github.com/zedseven/breeze/commit/6549eed1))
+
 ## [1.1.0] - 2024-04-13
 
 ### Bug Fixes
