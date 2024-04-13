@@ -96,6 +96,8 @@ const DEFAULT_FONT_LIST: &[&str] = &[
 	"Ubuntu",
 ];
 const DEFAULT_TITLE: &str = "`breeze` Presentation";
+
+const FULLSCREEN_VALUE: Fullscreen = Fullscreen::Borderless(None);
 /// The minimum scaling factor at which to enable nearest-neighbour image
 /// sampling.
 ///
@@ -139,22 +141,23 @@ fn main() -> AnyhowResult<()> {
 		// Load all images into memory
 		let base_path = file_path.parent();
 		let image_cache = match load_images_from_presentation(&presentation, base_path) {
-            Ok(image_cache) => image_cache,
-            Err(error) => {
-                user_error = error;
-                break 'user_error_block;
-            }
-        };
+			Ok(image_cache) => image_cache,
+			Err(error) => {
+				user_error = error;
+				break 'user_error_block;
+			}
+		};
 
 		// Run the presentation
 		run_presentation(&presentation, image_cache)?;
 		return Ok(());
 	}
 
-    // If there was some sort of user error, display it using the presentation interface
+	// If there was some sort of user error, display it using the presentation
+	// interface
 	let mut error_presentation = Presentation::from(user_error);
-    error_presentation.foreground_colour = Some(ERROR_FOREGROUND_COLOUR);
-    error_presentation.background_colour = Some(ERROR_BACKGROUND_COLOUR);
+	error_presentation.foreground_colour = Some(ERROR_FOREGROUND_COLOUR);
+	error_presentation.background_colour = Some(ERROR_BACKGROUND_COLOUR);
 	run_presentation(&error_presentation, HashMap::new())?;
 
 	Ok(())
@@ -240,7 +243,8 @@ fn run_presentation(
 	event_loop.set_control_flow(ControlFlow::Wait);
 	let window_builder = WindowBuilder::new()
 		.with_title(window_title)
-		.with_fullscreen(Some(Fullscreen::Borderless(None)));
+		.with_resizable(true)
+		.with_fullscreen(Some(FULLSCREEN_VALUE));
 
 	let mut renderer = Renderer::new(
 		&event_loop,
@@ -254,6 +258,7 @@ fn run_presentation(
 	.with_context(|| "unable to initialise the renderer")?;
 
 	// Runtime State
+	let mut is_fullscreen = true;
 	let mut current_slide = 0;
 
 	#[allow(clippy::wildcard_enum_match_arm, clippy::single_match)]
@@ -284,6 +289,9 @@ fn run_presentation(
 							match event.key_without_modifiers().as_ref() {
 								Key::Named(NamedKey::Escape) | Key::Character("q") => {
 									window_target.exit();
+								}
+								Key::Named(NamedKey::F11) => {
+									toggle_fullscreen(window, &mut is_fullscreen);
 								}
 								Key::Named(
 									NamedKey::ArrowLeft
@@ -331,4 +339,16 @@ fn change_slides(
 		*current_slide -= 1;
 		window.request_redraw();
 	}
+}
+
+fn toggle_fullscreen(window: &Window, is_fullscreen: &mut bool) {
+	if *is_fullscreen {
+		// Disable fullscreen
+		window.set_fullscreen(None);
+	} else {
+		// Enable fullscreen
+		window.set_fullscreen(Some(FULLSCREEN_VALUE));
+	}
+
+	*is_fullscreen = !*is_fullscreen;
 }
