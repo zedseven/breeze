@@ -5,8 +5,6 @@
 // Uses
 use std::{fs::read_to_string, path::Path};
 
-use anyhow::{Context, Result as AnyhowResult};
-
 use crate::LinearRgbaColour;
 
 // Constants
@@ -133,13 +131,17 @@ impl Presentation {
 		}
 	}
 
-	pub fn load_from_path<P>(path: P) -> AnyhowResult<Self>
+	pub fn load_from_path<P>(path: P) -> Result<Self, String>
 	where
 		P: AsRef<Path>,
 	{
 		let path = path.as_ref();
-		let file_contents = read_to_string(path)
-			.with_context(|| format!("unable to read the file \"{}\"", path.to_string_lossy()))?;
+		let file_contents = read_to_string(path).map_err(|_| {
+			format!(
+				"unable to read the presentation file\n\"{}\"!",
+				path.to_string_lossy()
+			)
+		})?;
 
 		Ok(Self::load(file_contents.as_str()))
 	}
@@ -171,6 +173,26 @@ impl Presentation {
 			}
 			Slide::Image(_) | Slide::Empty => None,
 		})
+	}
+}
+
+impl Default for Presentation {
+	fn default() -> Self {
+		Self {
+			font_list:         vec![],
+			foreground_colour: None,
+			background_colour: None,
+			slides:            vec![Slide::Empty],
+		}
+	}
+}
+
+impl From<String> for Presentation {
+	fn from(value: String) -> Self {
+		Self {
+			slides: vec![Slide::Text(value)],
+			..Default::default()
+		}
 	}
 }
 

@@ -50,7 +50,7 @@ use std::{
 	path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Context, Result as AnyhowResult};
+use anyhow::{Context, Result as AnyhowResult};
 use image::{io::Reader as ImageReader, DynamicImage};
 use winit::{
 	event::{ElementState, Event, MouseButton, WindowEvent},
@@ -71,6 +71,8 @@ const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 const DEFAULT_FOREGROUND_COLOUR: LinearRgbaColour = [1.0, 1.0, 1.0, 1.0];
 const DEFAULT_BACKGROUND_COLOUR: LinearRgbaColour = [0.0, 0.0, 0.0, 1.0];
+const ERROR_FOREGROUND_COLOUR: LinearRgbaColour = [1.0, 1.0, 1.0, 1.0];
+const ERROR_BACKGROUND_COLOUR: LinearRgbaColour = [0.01, 0.0, 0.0, 1.0];
 /// The default search list for system fonts, searched in order from top to
 /// bottom, using the first one that's found.
 ///
@@ -107,30 +109,61 @@ type LinearRgbaColour = [f32; 4];
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
-	// Read the file path from the command line
-	let args = args().collect::<Vec<_>>();
-	if args.len() != 2 {
-		return Err(anyhow!("exactly one argument, the file path, is required"));
+	const FILE_PATH_ARGUMENT_INDEX: usize = 1;
+	const EXPECTED_ARGUMENT_COUNT: usize = FILE_PATH_ARGUMENT_INDEX + 1;
+
+	let user_error;
+
+	'user_error_block: {
+		// Read the file path from the command line
+		let args = args().collect::<Vec<_>>();
+		if args.len() < EXPECTED_ARGUMENT_COUNT {
+			user_error = "you must run this program with a file!".to_owned();
+			break 'user_error_block;
+		}
+		if args.len() > EXPECTED_ARGUMENT_COUNT {
+			user_error = "this program expects only one argument!".to_owned();
+			break 'user_error_block;
+		}
+		let file_path = PathBuf::from(&args[FILE_PATH_ARGUMENT_INDEX]);
+
+		// Load the presentation
+		let presentation = match Presentation::load_from_path(file_path.clone()) {
+			Ok(presentation) => presentation,
+			Err(error) => {
+				user_error = error;
+				break 'user_error_block;
+			}
+		};
+
+		// Load all images into memory
+		let base_path = file_path.parent();
+		let image_cache = match load_images_from_presentation(&presentation, base_path) {
+            Ok(image_cache) => image_cache,
+            Err(error) => {
+                user_error = error;
+                break 'user_error_block;
+            }
+        };
+
+		// Run the presentation
+		run_presentation(&presentation, image_cache)?;
+		return Ok(());
 	}
-	let file_path = PathBuf::from(&args[1]);
 
-	// Load the presentation
-	let presentation = Presentation::load_from_path(file_path.clone())
-		.with_context(|| "unable to load the presentation")?;
+    // If there was some sort of user error, display it using the presentation interface
+	let mut error_presentation = Presentation::from(user_error);
+    error_presentation.foreground_colour = Some(ERROR_FOREGROUND_COLOUR);
+    error_presentation.background_colour = Some(ERROR_BACKGROUND_COLOUR);
+	run_presentation(&error_presentation, HashMap::new())?;
 
-	// Load all images into memory
-	let base_path = file_path.parent();
-	let image_cache = load_images_from_presentation(&presentation, base_path)
-		.with_context(|| "unable to load a presentation image")?;
-
-	// Run the presentation
-	run_presentation(&presentation, image_cache)
+	Ok(())
 }
 
 fn load_images_from_presentation<'a>(
 	presentation: &'a Presentation,
 	base_path: Option<&Path>,
-) -> AnyhowResult<HashMap<&'a String, DynamicImage>> {
+) -> Result<HashMap<&'a String, DynamicImage>, String> {
 	let mut image_cache = HashMap::new();
 
 	for image_path in presentation.slides.iter().filter_map(|slide| match slide {
@@ -146,23 +179,23 @@ fn load_images_from_presentation<'a>(
 
 		// Load the image into memory
 		let image = ImageReader::open(resolved_image_path.as_path())
-			.with_context(|| {
+			.map_err(|_| {
 				format!(
-					"unable to open \"{}\"",
+					"unable to open the image\n\"{}\"!",
 					resolved_image_path.to_string_lossy()
 				)
 			})?
 			.with_guessed_format()
-			.with_context(|| {
+			.map_err(|_| {
 				format!(
-					"unable to guess the format of \"{}\"",
+					"unable to guess the format of the image\n\"{}\"!",
 					resolved_image_path.to_string_lossy()
 				)
 			})?
 			.decode()
-			.with_context(|| {
+			.map_err(|_| {
 				format!(
-					"unable to load \"{}\"",
+					"unable to load the image\n\"{}\"!",
 					resolved_image_path.to_string_lossy()
 				)
 			})?;
@@ -191,7 +224,7 @@ fn run_presentation(
 		.collect::<Vec<_>>();
 	font_list.extend_from_slice(DEFAULT_FONT_LIST);
 	let font = load_font(font_list.as_slice())
-		.with_context(|| "unable to find & load any font in the list")?;
+		.with_context(|| "unable to find & load any font in the provided list")?;
 
 	// Prepare the colours to use
 	let foreground_colour = presentation
