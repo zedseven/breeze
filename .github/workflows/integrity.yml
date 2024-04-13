@@ -59,6 +59,30 @@ jobs:
           command: clippy
           args: -- -D warnings -A unused
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install `nightly` toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          components: clippy
+          override: true
+
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cargo Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --no-fail-fast --workspace
+
   misplaced-use-statements-check:
     name: Misplaced `use` Statements Check
     runs-on: ubuntu-latest
