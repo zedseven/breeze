@@ -12,10 +12,10 @@
   };
 
   outputs = {
-    self,
     nixpkgs,
     rust-overlay,
     crane,
+    ...
   }: let
     system = "x86_64-linux";
 
@@ -26,17 +26,62 @@
 
     inherit (nixpkgs) lib;
 
+    # Below are runtime dependencies loaded via `dlopen` - they do not show up with `ldd`
+    # https://github.com/rust-windowing/winit/issues/493
+    # https://github.com/emilk/egui/discussions/1587
+    # https://www.reddit.com/r/bevy/comments/1136v35/has_anybody_managed_to_make_linux_staticish/
+    # It doesn't seem like `crane` supports optional values in `craneLib.buildPackage`, so both backends are included
+    # https://github.com/ipetkov/crane/issues/586
+    rpathLibs = with pkgs; [
+      libxkbcommon
+      libGL
+
+      # WINIT_UNIX_BACKEND=wayland
+      wayland
+
+      # WINIT_UNIX_BACKEND=x11
+      xorg.libXcursor
+      xorg.libXrandr
+      xorg.libXi
+      xorg.libX11
+    ];
+
+    extraFileTypesFilter = path: _: builtins.match ".*\\.(?:vert|frag)$" path != null;
+    cleanCargoSourceCustom = path: type: (extraFileTypesFilter path type) || (craneLib.filterCargoSources path type);
+
+    mainProgram = "breeze";
+
     rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
 
     craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
-    src = self;
 
-    cargoArtifacts = craneLib.buildDepsOnly {
-      inherit src;
+    src = lib.cleanSourceWith {
+      src = craneLib.path ./.;
+      filter = cleanCargoSourceCustom;
     };
+
+    cargoArtifacts = craneLib.buildDepsOnly {inherit src;};
 
     crate = craneLib.buildPackage {
       inherit cargoArtifacts src;
+
+      strictDeps = true;
+
+      fixupPhase = ''
+        patchelf --set-rpath "${lib.makeLibraryPath rpathLibs}:$(patchelf --print-rpath $out/bin/${mainProgram})" $out/bin/${mainProgram}
+      '';
+
+      meta = {
+        inherit mainProgram;
+        description = "A tool for running presentations without fluff";
+        homepage = "https://github.com/zedseven/breeze";
+        license = with lib.licenses; [
+          asl20
+          mit
+        ];
+        platforms = lib.platforms.unix;
+        maintainers = with lib.maintainers; [zedseven];
+      };
     };
 
     crate-clippy = craneLib.cargoClippy {
@@ -44,41 +89,18 @@
       cargoClippyExtraArgs = "-- --deny warnings --allow unused";
     };
 
-    crate-fmt-check = craneLib.cargoFmt {
-      inherit src;
-    };
+    crate-fmt-check = craneLib.cargoFmt {inherit src;};
   in {
     packages.${system}.default = crate;
     checks.${system} = {
       inherit crate crate-clippy crate-fmt-check;
     };
-    devShells.${system}.default = pkgs.mkShell rec {
-      # Below are runtime dependencies loaded via `dlopen` - they do not show up with `ldd`
-      # https://github.com/rust-windowing/winit/issues/493
-      # https://github.com/emilk/egui/discussions/1587
-      # https://www.reddit.com/r/bevy/comments/1136v35/has_anybody_managed_to_make_linux_staticish/
-      buildInputs = with pkgs; [
-        libxkbcommon
-        libGL
+    devShells.${system}.default = pkgs.mkShell {
+      LD_LIBRARY_PATH = "${lib.makeLibraryPath rpathLibs}";
 
-        # WINIT_UNIX_BACKEND=wayland
-        wayland
+      packages = [rustToolchain];
 
-        # WINIT_UNIX_BACKEND=x11
-        xorg.libXcursor
-        xorg.libXrandr
-        xorg.libXi
-        xorg.libX11
-      ];
-      LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
-
-      packages = [
-        rustToolchain
-      ];
-
-      env = {
-        RUST_BACKTRACE = "full";
-      };
+      env.RUST_BACKTRACE = "full";
 
       shellHook = ''
         # Required for use by RustRover, since it doesn't find the toolchain or stdlib by using the PATH
