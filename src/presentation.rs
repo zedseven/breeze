@@ -18,7 +18,7 @@ const FONT_OPTION_NAME: &str = "font";
 const FOREGROUND_COLOUR_OPTION_NAME: &str = "fg";
 const BACKGROUND_COLOUR_OPTION_NAME: &str = "bg";
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Presentation {
 	pub font_list:         Vec<String>,
 	pub foreground_colour: Option<LinearRgbaColour>,
@@ -26,7 +26,7 @@ pub struct Presentation {
 	pub slides:            Vec<Slide>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Slide {
 	Text(String),
 	Image(String),
@@ -96,7 +96,7 @@ impl Presentation {
 				continue;
 			}
 
-			// Push the line to the current paragraph
+			// Remove the escape character if present
 			if line_trimmed.starts_with(ESCAPE_MARKER) {
 				line_trimmed = &line_trimmed[1..];
 			}
@@ -270,5 +270,128 @@ fn srgb_to_linear_rgb_channel(srgb_value: f32) -> f32 {
 		((srgb_value + A) / (1.0 + A)).powf(GAMMA)
 	} else {
 		srgb_value / PHI
+	}
+}
+
+#[cfg(test)]
+mod tests {
+    // Uses
+	use super::{Presentation, Slide};
+
+	#[test]
+	fn many_slides() {
+		let actual_result = Presentation::load(
+			r"
+This is a text slide.
+
+Text slide with multiple lines:
+- item 1
+- item 2
+- item 3
+
+Another text slide!
+
+\
+
+@image.png
+This text won't be shown, since this is an image slide
+
+Final slide
+",
+		)
+		.slides;
+
+		let expected_result = vec![
+			Slide::Text(r"This is a text slide.".to_owned()),
+			Slide::Text(
+				r"Text slide with multiple lines:
+- item 1
+- item 2
+- item 3"
+					.to_owned(),
+			),
+			Slide::Text(r"Another text slide!".to_owned()),
+			Slide::Empty,
+			Slide::Image("image.png".to_owned()),
+			Slide::Text(r"Final slide".to_owned()),
+		];
+
+		assert_eq!(expected_result, actual_result);
+	}
+
+	#[test]
+	fn comments() {
+		let actual_result = Presentation::load(
+			r"
+# Comment at the beginning of a text slide
+Text slide
+# Comment at the end of a text slide
+
+# Solitary comment
+
+Another text slide
+
+A text slide demonstrating that comments
+don't work unless they're at the beginning
+of the line: # Comment
+
+# Comment at the end of the file
+",
+		)
+		.slides;
+
+		let expected_result = vec![
+			Slide::Text(r"Text slide".to_owned()),
+			Slide::Text(r"Another text slide".to_owned()),
+			Slide::Text(
+				r"A text slide demonstrating that comments
+don't work unless they're at the beginning
+of the line: # Comment"
+					.to_owned(),
+			),
+		];
+
+		assert_eq!(expected_result, actual_result);
+	}
+
+	#[test]
+	fn configuration() {
+		let actual_result = Presentation::load(
+			r"
+#.font:Roboto
+#.font:Helvetica
+#.fg:#ffffff
+#.bg:#000000
+
+This is a presentation for testing the configuration parameters.
+",
+		);
+
+		let expected_result = Presentation {
+			font_list:         vec!["Roboto".to_owned(), "Helvetica".to_owned()],
+			foreground_colour: Some([1.0, 1.0, 1.0, 1.0]),
+			background_colour: Some([0.0, 0.0, 0.0, 1.0]),
+			slides:            vec![Slide::Text(
+				"This is a presentation for testing the configuration parameters.".to_owned(),
+			)],
+		};
+
+		assert_eq!(expected_result, actual_result);
+	}
+
+	#[test]
+	fn get_title() {
+		let actual_result = Presentation::load(
+			r"
+First Slide
+
+A text slide with some content
+",
+		)
+		.try_get_title();
+
+		let expected_result = Some("First Slide".to_owned());
+
+		assert_eq!(expected_result, actual_result);
 	}
 }
