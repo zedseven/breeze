@@ -46,7 +46,7 @@
       xorg.libX11
     ];
 
-    extraFileTypesFilter = path: _: builtins.match ".*\\.(?:vert|frag)$" path != null;
+    extraFileTypesFilter = path: _: builtins.match ".*\\.(vert|frag)$" path != null;
     cleanCargoSourceCustom = path: type: (extraFileTypesFilter path type) || (craneLib.filterCargoSources path type);
 
     mainProgram = "breeze";
