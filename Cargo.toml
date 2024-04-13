@@ -1,6 +1,6 @@
 [package]
 name = "breeze"
-version = "1.0.0" # Managed by `release.sh`
+version = "1.1.0" # Managed by `release.sh`
 authors = ["Zacchary Dempsey-Plante <zacc@ztdp.ca>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"

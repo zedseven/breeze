@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2024-04-13
+
+### Bug Fixes
+
+- Prevent a crash when the presentation file is empty. ([38e32c32](https://github.com/zedseven/breeze/commit/38e32c32))
+
+### Continuous Integration
+
+- Update a few actions to newer versions. ([a89c0454](https://github.com/zedseven/breeze/commit/a89c0454))
+- Add a new check for running unit tests. ([7d7eaa86](https://github.com/zedseven/breeze/commit/7d7eaa86))
+
+### Features
+
+- Display user errors using the presentation interface. This makes the program much more user-friendly, and facilitates non-CLI use. ([d17ddcf4](https://github.com/zedseven/breeze/commit/d17ddcf4))
+- Adjust the wording in the example presentation slightly. ([a0c2ac16](https://github.com/zedseven/breeze/commit/a0c2ac16))
+- Add functionality to toggle fullscreen, using the `F11` key. ([6e28cd0d](https://github.com/zedseven/breeze/commit/6e28cd0d))
+
+### Miscellaneous Tasks
+
+- Update `rust-fontconfig` to an official release, now that the changes have been merged upstream. ([9b931a8f](https://github.com/zedseven/breeze/commit/9b931a8f))
+- Fix an unformatted line of code. ([ed34ce90](https://github.com/zedseven/breeze/commit/ed34ce90))
+
+### Testing
+
+- Add unit tests for the presentation-parsing components. ([a7e0a42d](https://github.com/zedseven/breeze/commit/a7e0a42d))
+
 ## [1.0.0] - 2024-01-17
 
 ### Bug Fixes
