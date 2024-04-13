@@ -275,7 +275,7 @@ fn srgb_to_linear_rgb_channel(srgb_value: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    // Uses
+	// Uses
 	use super::{Presentation, Slide};
 
 	#[test]
