@@ -123,6 +123,12 @@ impl Presentation {
 			slides.push(Slide::Text(current_paragraph));
 		}
 
+		// Ensure the presentation always has at least one slide
+		if slides.is_empty() {
+			slides.push(Slide::Empty);
+		}
+
+		// Construct the final result
 		Self {
 			font_list,
 			foreground_colour,
