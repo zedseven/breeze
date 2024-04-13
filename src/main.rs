@@ -1,8 +1,6 @@
 //! A tool for running presentations without fluff. Effectively a spiritual fork
 //! of the `suckless` tool, `sent`.
 
-// Nightly Features
-#![feature(slice_as_chunks)]
 // Linting Rules
 #![warn(
 	clippy::complexity,

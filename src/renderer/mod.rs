@@ -379,11 +379,12 @@ fn convert_image_cache_to_textures<'a>(
 		let image_data = image.to_rgba8();
 		let (image_width, image_height) = image_data.dimensions();
 		let kind = Kind::D2(image_width as u16, image_height as u16, AaMode::Single);
+		let image_data_chunks = slice_as_chunks::<u8, 4>(image_data.as_raw().as_slice());
 		let (_, resource_view) = factory
 			.create_texture_immutable::<ColourFormat>(
 				kind,
 				Mipmap::Provided,
-				&[image_data.as_chunks::<4>().0],
+				&[image_data_chunks.0.as_slice()],
 			)
 			.with_context(|| {
 				format!("unable to prepare the image \"{image_path}\" for rendering")
@@ -447,4 +448,27 @@ fn calculate_scaling_factor(
 	let height_scaling_factor = usable_height / unscaled_height;
 
 	width_scaling_factor.min(height_scaling_factor)
+}
+
+/// The need for this function is stupid.
+///
+/// It's only required until the [`slice_as_chunks` feature] is stabilised.
+///
+/// [`slice_as_chunks` feature]: https://github.com/rust-lang/rust/issues/74985
+fn slice_as_chunks<T, const N: usize>(slice: &[T]) -> (Vec<[T; N]>, &[T])
+where
+	T: Copy,
+{
+	assert_ne!(N, 0, "chunk size must be non-zero");
+
+	let mut remainder = slice;
+	let mut result = Vec::new();
+	while remainder.len() > N {
+		let chunk;
+		(chunk, remainder) = remainder.split_at(N);
+
+		result.push(chunk.try_into().expect("length was already validated"));
+	}
+
+	(result, remainder)
 }
