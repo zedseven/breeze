@@ -44,16 +44,18 @@ impl<T> PipelineOption<T> {
 		"`None` value attempted to be bound to the rendering pipeline";
 
 	fn unwrap_as_ref(&self) -> &T {
-		match &self.0 {
-			Some(inner) => inner,
-			None => panic!("{}", Self::PANIC_MESSAGE),
+		if let Some(inner) = &self.0 {
+			inner
+		} else {
+			panic!("{}", Self::PANIC_MESSAGE)
 		}
 	}
 
 	fn unwrap_as_ref_mut(&mut self) -> &mut T {
-		match &mut self.0 {
-			Some(inner) => inner,
-			None => panic!("{}", Self::PANIC_MESSAGE),
+		if let Some(inner) = &mut self.0 {
+			inner
+		} else {
+			panic!("{}", Self::PANIC_MESSAGE)
 		}
 	}
 }
