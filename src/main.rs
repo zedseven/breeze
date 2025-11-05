@@ -37,10 +37,10 @@
 #![windows_subsystem = "windows"]
 
 // Modules
+mod build_constants;
 mod fonts;
 mod presentation;
 mod renderer;
-mod build_constants;
 
 // Uses
 use std::{
