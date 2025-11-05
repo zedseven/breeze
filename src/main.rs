@@ -253,9 +253,10 @@ fn run_presentation(
 
 	#[cfg(windows)]
 	{
-		let program_icon = Icon::from_resource(ICON_WINDOWS_ID, None);
+		let program_icon = Icon::from_resource(ICON_WINDOWS_ID, None)
+			.with_context(|| "unable to get the program icon")?;
 
-		window_attributes = window_attributes.with_window_icon(program_icon);
+		window_attributes = window_attributes.with_window_icon(Some(program_icon));
 	}
 
 	let mut renderer = Renderer::new(
