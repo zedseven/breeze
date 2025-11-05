@@ -30,5 +30,5 @@ winresource = "0.1"
 
 [package.metadata.winresource]
 FileDescription = "breeze" # Even though this property is called a "description", it's actually used as the application name in Task Manager
-LegalCopyright = "© 2024 Zacchary Dempsey-Plante"
+LegalCopyright = "© 2025 Zacchary Dempsey-Plante"
 OriginalFilename = "breeze.exe"
