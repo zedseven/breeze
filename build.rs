@@ -1,8 +1,15 @@
+// Modules
+#[path = "src/build_constants.rs"]
+mod build_constants;
+
 // Uses
 use std::io::Result;
 
 #[cfg(windows)]
 use winresource::WindowsResource;
+
+#[cfg(windows)]
+use self::build_constants::ICON_WINDOWS_ID;
 
 // Constants
 #[cfg(windows)]
@@ -23,7 +30,10 @@ fn executable_packaging() -> Result<()> {
 	#[cfg(windows)]
 	{
 		WindowsResource::new()
-			.set_icon(format!("{}/{}", BUILD_ASSETS_DIR, "logo.ico").as_str())
+			.set_icon_with_id(
+				format!("{}/{}", BUILD_ASSETS_DIR, "logo.ico").as_str(),
+				ICON_WINDOWS_ID.to_string().as_str(),
+			)
 			.set_language(NEUTRAL_LCID)
 			.compile()?;
 	}

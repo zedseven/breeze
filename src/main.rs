@@ -40,6 +40,7 @@
 mod fonts;
 mod presentation;
 mod renderer;
+mod build_constants;
 
 // Uses
 use std::{
@@ -57,7 +58,11 @@ use winit::{
 	platform::modifier_supplement::KeyEventExtModifierSupplement,
 	window::{Fullscreen, Window},
 };
+#[cfg(windows)]
+use winit::{platform::windows::IconExtWindows, window::Icon};
 
+#[cfg(windows)]
+use self::build_constants::ICON_WINDOWS_ID;
 use self::{
 	fonts::load_font,
 	presentation::{Presentation, Slide},
@@ -240,10 +245,18 @@ fn run_presentation(
 	let event_loop =
 		EventLoop::new().with_context(|| "unable to initialise the display backend")?;
 	event_loop.set_control_flow(ControlFlow::Wait);
-	let window_attributes = Window::default_attributes()
+	#[allow(unused_mut)]
+	let mut window_attributes = Window::default_attributes()
 		.with_title(window_title)
 		.with_resizable(true)
 		.with_fullscreen(Some(FULLSCREEN_VALUE));
+
+	#[cfg(windows)]
+	{
+		let program_icon = Icon::from_resource(ICON_WINDOWS_ID, None);
+
+		window_attributes = window_attributes.with_window_icon(program_icon);
+	}
 
 	let mut renderer = Renderer::new(
 		&event_loop,
