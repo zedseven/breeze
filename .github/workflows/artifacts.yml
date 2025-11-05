@@ -42,7 +42,7 @@ jobs:
 
       - name: Upload Artifacts (Linux)
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: breeze (Linux)
           path: ./target/release/breeze
@@ -50,7 +50,7 @@ jobs:
 
       - name: Upload Artifacts (Windows)
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: breeze (Windows)
           path: ./target/release/breeze.exe
