@@ -55,7 +55,7 @@ use winit::{
 	event_loop::{ControlFlow, EventLoop},
 	keyboard::{Key, NamedKey},
 	platform::modifier_supplement::KeyEventExtModifierSupplement,
-	window::{Fullscreen, Window, WindowBuilder},
+	window::{Fullscreen, Window},
 };
 
 use self::{
@@ -240,14 +240,14 @@ fn run_presentation(
 	let event_loop =
 		EventLoop::new().with_context(|| "unable to initialise the display backend")?;
 	event_loop.set_control_flow(ControlFlow::Wait);
-	let window_builder = WindowBuilder::new()
+	let window_attributes = Window::default_attributes()
 		.with_title(window_title)
 		.with_resizable(true)
 		.with_fullscreen(Some(FULLSCREEN_VALUE));
 
 	let mut renderer = Renderer::new(
 		&event_loop,
-		window_builder,
+		window_attributes,
 		|window| window.set_cursor_visible(presentation.show_cursor.unwrap_or(DEFAULT_SHOW_CURSOR)),
 		font,
 		foreground_colour,
@@ -260,7 +260,7 @@ fn run_presentation(
 	let mut is_fullscreen = true;
 	let mut current_slide = 0;
 
-	#[allow(clippy::wildcard_enum_match_arm, clippy::single_match)]
+	#[allow(deprecated, clippy::wildcard_enum_match_arm, clippy::single_match)]
 	event_loop
 		.run(move |event, window_target| {
 			let window = renderer.get_window();

@@ -55,7 +55,7 @@ use old_school_gfx_glutin_ext::{
 use winit::{
 	dpi::PhysicalSize,
 	event_loop::EventLoop,
-	window::{Window, WindowBuilder},
+	window::{Window, WindowAttributes},
 };
 
 use self::pipeline_option::PipelineOption;
@@ -112,7 +112,7 @@ pub struct Renderer<'a> {
 impl<'a> Renderer<'a> {
 	pub fn new<F>(
 		event_loop: &EventLoop<()>,
-		window_builder: WindowBuilder,
+		window_attributes: WindowAttributes,
 		additional_window_configuration: F,
 		font: FontArc,
 		foreground_colour: LinearRgbaColour,
@@ -136,7 +136,7 @@ impl<'a> Renderer<'a> {
 			color_view: colour_view,
 			depth_view,
 			..
-		} = old_school_gfx_glutin_ext_window_builder(event_loop, window_builder)
+		} = old_school_gfx_glutin_ext_window_builder(event_loop, window_attributes)
 			.build::<ColourFormat, DepthFormat>()
 			.map_err(|error| anyhow!(error.to_string()))
 			.with_context(|| "unable to build the window")?;
