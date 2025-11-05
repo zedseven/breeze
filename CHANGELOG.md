@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2025-11-05
+
+### Bug Fixes
+
+- Fix an issue with touchscreen support where the middle of the window was not calculated correctly. ([929a59b4](https://github.com/zedseven/breeze/commit/929a59b4))
+- Render transparent images without a background. ([7639f1ef](https://github.com/zedseven/breeze/commit/7639f1ef))
+
+### Continuous Integration
+
+- Change the generated artifacts' names to be more descriptive and to be closer to the release artifact names. ([1fa9657d](https://github.com/zedseven/breeze/commit/1fa9657d))
+
+### Miscellaneous Tasks
+
+- Update the copyright year. ([706da6b3](https://github.com/zedseven/breeze/commit/706da6b3))
+
 ## [1.2.0] - 2025-11-05
 
 ### Bug Fixes
