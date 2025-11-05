@@ -70,8 +70,8 @@ use self::{
 };
 
 // Constants
-const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
-const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
+const USABLE_WIDTH_PERCENTAGE: f32 = 2.0 / 3.0;
+const USABLE_HEIGHT_PERCENTAGE: f32 = 2.0 / 3.0;
 const DEFAULT_FOREGROUND_COLOUR: LinearRgbaColour = [1.0, 1.0, 1.0, 1.0];
 const DEFAULT_BACKGROUND_COLOUR: LinearRgbaColour = [0.0, 0.0, 0.0, 1.0];
 const DEFAULT_SHOW_CURSOR: bool = false;
