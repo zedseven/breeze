@@ -2,7 +2,7 @@
 mod pipeline_option;
 
 // Uses
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::swap};
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 pub use gfx; // Required by `gfx_defines`
@@ -360,6 +360,12 @@ impl<'a> Renderer<'a> {
 
 	pub fn get_window(&self) -> &Window {
 		&self.window
+	}
+
+	pub fn invert_colours(&mut self) {
+		swap(&mut self.foreground_colour, &mut self.background_colour);
+
+		self.window.request_redraw();
 	}
 }
 

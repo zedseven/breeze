@@ -325,6 +325,9 @@ fn run_presentation(
 								| Key::Character("l" | "j" | "n") => {
 									change_slides(window, presentation, &mut current_slide, true);
 								}
+								Key::Character("i") => {
+									renderer.invert_colours();
+								}
 								_ => {}
 							}
 						}
