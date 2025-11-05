@@ -332,9 +332,9 @@ This text won't be shown, since this is an image slide
 Final slide
 ",
 		)
-		.slides;
+		.map(|presentation| presentation.slides);
 
-		let expected_result = vec![
+		let expected_result = Ok(vec![
 			Slide::Text(r"This is a text slide.".to_owned()),
 			Slide::Text(
 				r"Text slide with multiple lines:
@@ -347,7 +347,7 @@ Final slide
 			Slide::Empty,
 			Slide::Image("image.png".to_owned()),
 			Slide::Text(r"Final slide".to_owned()),
-		];
+		]);
 
 		assert_eq!(expected_result, actual_result);
 	}
@@ -371,9 +371,9 @@ of the line: # Comment
 # Comment at the end of the file
 ",
 		)
-		.slides;
+		.map(|presentation| presentation.slides);
 
-		let expected_result = vec![
+		let expected_result = Ok(vec![
 			Slide::Text(r"Text slide".to_owned()),
 			Slide::Text(r"Another text slide".to_owned()),
 			Slide::Text(
@@ -382,7 +382,7 @@ don't work unless they're at the beginning
 of the line: # Comment"
 					.to_owned(),
 			),
-		];
+		]);
 
 		assert_eq!(expected_result, actual_result);
 	}
@@ -395,19 +395,21 @@ of the line: # Comment"
 #.font:Helvetica
 #.fg:#ffffff
 #.bg:#000000
+#.cursor:true
 
 This is a presentation for testing the configuration parameters.
 ",
 		);
 
-		let expected_result = Presentation {
+		let expected_result = Ok(Presentation {
 			font_list:         vec!["Roboto".to_owned(), "Helvetica".to_owned()],
 			foreground_colour: Some([1.0, 1.0, 1.0, 1.0]),
 			background_colour: Some([0.0, 0.0, 0.0, 1.0]),
+			show_cursor:       Some(true),
 			slides:            vec![Slide::Text(
 				"This is a presentation for testing the configuration parameters.".to_owned(),
 			)],
-		};
+		});
 
 		assert_eq!(expected_result, actual_result);
 	}
@@ -421,9 +423,9 @@ First Slide
 A text slide with some content
 ",
 		)
-		.try_get_title();
+		.map(|presentation| presentation.try_get_title());
 
-		let expected_result = Some("First Slide".to_owned());
+		let expected_result = Ok(Some("First Slide".to_owned()));
 
 		assert_eq!(expected_result, actual_result);
 	}
