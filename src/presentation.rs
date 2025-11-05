@@ -34,7 +34,7 @@ pub enum Slide {
 }
 
 impl Presentation {
-	pub fn load(contents: &str) -> Self {
+	pub fn load(contents: &str) -> Result<Self, String> {
 		let mut font_list = Vec::new();
 		let mut foreground_colour = None;
 		let mut background_colour = None;
@@ -68,12 +68,22 @@ impl Presentation {
 						FONT_OPTION_NAME => font_list.push(option_value.to_owned()),
 						FOREGROUND_COLOUR_OPTION_NAME => {
 							if foreground_colour.is_none() {
-								foreground_colour = parse_colour_hex_code(option_value);
+								foreground_colour =
+									Some(parse_colour_hex_code(option_value).ok_or_else(|| {
+										format!(
+											"foreground colour \"{option_value}\" is not valid!",
+										)
+									})?);
 							}
 						}
 						BACKGROUND_COLOUR_OPTION_NAME => {
 							if background_colour.is_none() {
-								background_colour = parse_colour_hex_code(option_value);
+								background_colour =
+									Some(parse_colour_hex_code(option_value).ok_or_else(|| {
+										format!(
+											"background colour \"{option_value}\" is not valid!",
+										)
+									})?);
 							}
 						}
 						_ => {}
@@ -129,12 +139,12 @@ impl Presentation {
 		}
 
 		// Construct the final result
-		Self {
+		Ok(Self {
 			font_list,
 			foreground_colour,
 			background_colour,
 			slides,
-		}
+		})
 	}
 
 	pub fn load_from_path<P>(path: P) -> Result<Self, String>
@@ -149,7 +159,7 @@ impl Presentation {
 			)
 		})?;
 
-		Ok(Self::load(file_contents.as_str()))
+		Self::load(file_contents.as_str())
 	}
 
 	pub fn try_get_title(&self) -> Option<String> {
