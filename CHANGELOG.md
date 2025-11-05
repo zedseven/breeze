@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-11-05
+
+### Bug Fixes
+
+- Handle errors that may occur when attempting to load the icon from the program's resources on startup, on Windows. ([32e8b066](https://github.com/zedseven/breeze/commit/32e8b066))
+
+### Continuous Integration
+
+- Update the `upload-artifact` action to version 4. ([088759fd](https://github.com/zedseven/breeze/commit/088759fd))
+
+### Features
+
+- Display errors when failing to parse the foreground or background colours specified in the presentation file. ([cf7590c3](https://github.com/zedseven/breeze/commit/cf7590c3))
+- Allow the cursor to be shown over the presentation with a configuration setting inside the presentation file. ([21518693](https://github.com/zedseven/breeze/commit/21518693))
+- Set the window icon on Windows. ([610b6c74](https://github.com/zedseven/breeze/commit/610b6c74))
+- Add support for inverting the foreground and background colours of a presentation. ([e791d7a2](https://github.com/zedseven/breeze/commit/e791d7a2))
+- Change the usable space used for scaling to 2/3 of the width and height, instead of 3/4. ([143f30d2](https://github.com/zedseven/breeze/commit/143f30d2))
+- Add support for touching the screen to advance the presentation. ([3518b48f](https://github.com/zedseven/breeze/commit/3518b48f))
+- Change the usable space used for scaling to 1/φ of the width and height, instead of 2/3. ([c4fbe1c5](https://github.com/zedseven/breeze/commit/c4fbe1c5))
+
+### Miscellaneous Tasks
+
+- Package the program for use on NixOS. ([09e4b59a](https://github.com/zedseven/breeze/commit/09e4b59a))
+- Fix the regular expression used to filter files in the Nix build process. ([fd73411d](https://github.com/zedseven/breeze/commit/fd73411d))
+- Add support for multiple architectures to the Nix flake. ([675385dd](https://github.com/zedseven/breeze/commit/675385dd))
+- Update the Rust toolchain version to `nightly-2025-10-01`. ([da202873](https://github.com/zedseven/breeze/commit/da202873))
+- Update `winit`-related dependencies. ([3af2475a](https://github.com/zedseven/breeze/commit/3af2475a))
+- Update `winresource`-related dependencies. ([09dbbe70](https://github.com/zedseven/breeze/commit/09dbbe70))
+- Fix an unformatted line of code. ([aa76570b](https://github.com/zedseven/breeze/commit/aa76570b))
+
+### Refactor
+
+- Apply Clippy lints. ([a0d37019](https://github.com/zedseven/breeze/commit/a0d37019))
+- Apply Clippy lints that were suggested after updating the Rust toolchain version. ([473b6470](https://github.com/zedseven/breeze/commit/473b6470))
+
+### Testing
+
+- Update the test cases with the new changes. ([42f714a6](https://github.com/zedseven/breeze/commit/42f714a6))
+
 ## [1.1.1] - 2024-04-13
 
 ### Continuous Integration
