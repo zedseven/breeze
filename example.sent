@@ -3,6 +3,7 @@
 #.font:Helvetica
 #.fg:#ffffff
 #.bg:#000000
+#.cursor:false
 
 breeze
 
@@ -62,6 +63,7 @@ Presentation styling:
 - Font: #.font:Noto Sans
 - Foreground colour: #.fg:#000000
 - Background colour: #.bg:#ffffff
+- Show cursor: #.cursor:true
 
 If multiple fonts are specified, the
 first one that is found is used

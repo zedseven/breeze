@@ -69,6 +69,7 @@ const USABLE_WIDTH_PERCENTAGE: f32 = 0.75;
 const USABLE_HEIGHT_PERCENTAGE: f32 = 0.75;
 const DEFAULT_FOREGROUND_COLOUR: LinearRgbaColour = [1.0, 1.0, 1.0, 1.0];
 const DEFAULT_BACKGROUND_COLOUR: LinearRgbaColour = [0.0, 0.0, 0.0, 1.0];
+const DEFAULT_SHOW_CURSOR: bool = false;
 const ERROR_FOREGROUND_COLOUR: LinearRgbaColour = [1.0, 1.0, 1.0, 1.0];
 const ERROR_BACKGROUND_COLOUR: LinearRgbaColour = [0.01, 0.0, 0.0, 1.0];
 /// The default search list for system fonts, searched in order from top to
@@ -247,7 +248,7 @@ fn run_presentation(
 	let mut renderer = Renderer::new(
 		&event_loop,
 		window_builder,
-		|window| window.set_cursor_visible(false),
+		|window| window.set_cursor_visible(presentation.show_cursor.unwrap_or(DEFAULT_SHOW_CURSOR)),
 		font,
 		foreground_colour,
 		background_colour,

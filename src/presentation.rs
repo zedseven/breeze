@@ -17,12 +17,14 @@ const OPTION_SEPARATOR: char = ':';
 const FONT_OPTION_NAME: &str = "font";
 const FOREGROUND_COLOUR_OPTION_NAME: &str = "fg";
 const BACKGROUND_COLOUR_OPTION_NAME: &str = "bg";
+const SHOW_CURSOR_OPTION_NAME: &str = "cursor";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Presentation {
 	pub font_list:         Vec<String>,
 	pub foreground_colour: Option<LinearRgbaColour>,
 	pub background_colour: Option<LinearRgbaColour>,
+	pub show_cursor:       Option<bool>,
 	pub slides:            Vec<Slide>,
 }
 
@@ -38,6 +40,7 @@ impl Presentation {
 		let mut font_list = Vec::new();
 		let mut foreground_colour = None;
 		let mut background_colour = None;
+		let mut show_cursor = None;
 		let mut slides = Vec::new();
 
 		let mut current_paragraph = String::new();
@@ -84,6 +87,16 @@ impl Presentation {
 											"background colour \"{option_value}\" is not valid!",
 										)
 									})?);
+							}
+						}
+						SHOW_CURSOR_OPTION_NAME => {
+							if show_cursor.is_none() {
+								show_cursor = Some(parse_bool(option_value).ok_or_else(|| {
+									format!(
+										"show cursor value \"{option_value}\" is not valid!\nit \
+										 must be \"true\" or \"false\"",
+									)
+								})?);
 							}
 						}
 						_ => {}
@@ -143,6 +156,7 @@ impl Presentation {
 			font_list,
 			foreground_colour,
 			background_colour,
+			show_cursor,
 			slides,
 		})
 	}
@@ -198,6 +212,7 @@ impl Default for Presentation {
 			font_list:         vec![],
 			foreground_colour: None,
 			background_colour: None,
+			show_cursor:       None,
 			slides:            vec![Slide::Empty],
 		}
 	}
@@ -209,6 +224,14 @@ impl From<String> for Presentation {
 			slides: vec![Slide::Text(value)],
 			..Default::default()
 		}
+	}
+}
+
+fn parse_bool(bool_string: &str) -> Option<bool> {
+	match bool_string {
+		"true" => Some(true),
+		"false" => Some(false),
+		_ => None,
 	}
 }
 
