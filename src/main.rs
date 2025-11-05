@@ -302,18 +302,10 @@ fn run_presentation(
 						location,
 						..
 					}) => {
-						if let Ok(inner_position) = window.inner_position() {
-							let is_on_right_side = location.x
-								> f64::from(inner_position.x)
-									+ f64::from(window.inner_size().width) / 2.0;
+						let is_on_right_side =
+							location.x > f64::from(window.inner_size().width) / 2.0;
 
-							change_slides(
-								window,
-								presentation,
-								&mut current_slide,
-								is_on_right_side,
-							);
-						}
+						change_slides(window, presentation, &mut current_slide, is_on_right_side);
 					}
 					WindowEvent::KeyboardInput { event, .. } => {
 						if event.state == ElementState::Pressed && !event.repeat {
